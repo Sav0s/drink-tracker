@@ -1,59 +1,63 @@
-This project was bootstrapped with
-[Create React App](https://github.com/facebook/create-react-app).
+# Kabinen-Bar · Drink Tracker
 
-## Available Scripts
+Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen entnommene Getränke aus dem Kühlschrank; die App trackt Schulden pro Abrechnungsperiode. Der Admin verwaltet das Getränkeangebot und schließt Abrechnungen ab.
 
-In the project directory, you can run:
+## Tech Stack
 
-### `npm start`
+- **Next.js 16** (App Router, TypeScript)
+- **Chakra UI v3** mit Custom Dark-Theme
+- **Supabase** (Datenbank + Auth)
+- **Lucide React** (Icons)
+- **Vercel** (Deployment)
 
-Runs the app in the development mode.<br /> Open
-[http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Screens
 
-The page will reload if you make edits.<br /> You will also see any lint errors
-in the console.
+| Route | Screen | Beschreibung |
+|---|---|---|
+| `/login` | Player Login | Name aus Roster auswählen (kein Passwort) |
+| `/hauptseite` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
+| `/profil` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
+| `/admin/login` | Admin Login | Benutzername + Passwort (Steel-Theme) |
+| `/admin/dashboard` | Admin Dashboard | Getränke CRUD + Abrechnung verwalten |
 
-### `npm test`
+## Setup
 
-Launches the test runner in the interactive watch mode.<br /> See the section
-about
-[running tests](https://facebook.github.io/create-react-app/docs/running-tests)
-for more information.
+```bash
+npm install
+```
 
-### `npm run build`
+`.env.local` anlegen:
 
-Builds the app for production to the `build` folder.<br /> It correctly bundles
-React in production mode and optimizes the build for the best performance.
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-The build is minified and the filenames include the hashes.<br /> Your app is
-ready to be deployed!
+```bash
+npm run dev
+```
 
-See the section about
-[deployment](https://facebook.github.io/create-react-app/docs/deployment) for
-more information.
+## Datenmodell
 
-### `npm run eject`
+```
+Player          { id, name }
+Drink           { id, name, price_cents, active }
+BillingPeriod   { id, start_date, end_date, status, payment_instructions }
+Booking         { id, player_id, drink_id, period_id, created_at }
+Payment         { id, player_id, period_id, paid, paid_at, confirmed }
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Geldbeträge werden als **Integer-Cents** gespeichert. Formatierung: `1,50 €` (deutsches Format, via `formatCents()` in `src/types/index.ts`).
 
-If you aren’t satisfied with the build tool and configuration choices, you can
-`eject` at any time. This command will remove the single build dependency from
-your project.
+## Auth
 
-Instead, it will copy all the configuration files and the transitive
-dependencies (webpack, Babel, ESLint, etc) right into your project so you have
-full control over them. All of the commands except `eject` will still work, but
-they will point to the copied scripts so you can tweak them. At this point
-you’re on your own.
+- **Spieler:** Name-Auswahl aus DB-Roster → `sessionStorage`. Kein Passwort.
+- **Admin:** Supabase Auth (Username + Passwort). Route `/admin/*` geschützt.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for
-small and middle deployments, and you shouldn’t feel obligated to use this
-feature. However we understand that this tool wouldn’t be useful if you couldn’t
-customize it when you are ready for it.
+## Design
 
-## Learn More
+Dark-only. Design-Tokens in [`src/lib/theme.ts`](src/lib/theme.ts). Zwei Farbwelten:
+- **Player:** Club-Blau `#0468b3`
+- **Admin:** Steel `#6478a0`
 
-You can learn more in the
-[Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Design-Referenz (Hi-Fi Prototypen) im ZIP-Handoff: `design_handoff_drink_tracker/`.
