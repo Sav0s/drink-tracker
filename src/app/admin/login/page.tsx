@@ -1,176 +1,118 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Lock, AtSign, Eye, EyeOff } from "lucide-react";
+import { Box, Flex, Text } from "@chakra-ui/react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
-  const [user, setUser] = useState("");
-  const [pass, setPass] = useState("");
-  const [show, setShow] = useState(false);
-  const [error, setError] = useState(false);
-  const [focusUser, setFocusUser] = useState(false);
-  const [focusPass, setFocusPass] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
 
-  const canSubmit = user.trim() !== "" && pass.trim() !== "";
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-    // TODO: real auth via Supabase
-    if (user === "admin" && pass === "admin") {
-      router.push("/admin/dashboard");
-    } else {
-      setError(true);
+  async function handleGoogleLogin() {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/admin/dashboard`,
+      },
+    });
+    if (error) {
+      setError("Anmeldung fehlgeschlagen.");
+      setLoading(false);
     }
   }
 
   return (
-    <div style={s.root}>
-      <form style={s.form} onSubmit={handleLogin}>
-        {/* Crest */}
-        <div style={s.crest}>⚽</div>
+    <Flex
+      minH="100dvh"
+      flexDir="column"
+      alignItems="center"
+      justifyContent="center"
+      bg="#0b0e13"
+      px={5}
+    >
+      <Flex flexDir="column" alignItems="center" w="full" maxW="sm">
 
-        {/* Badge */}
-        <div style={s.badge}>
-          <Lock size={12} color="#6478a0" />
-          <span>Admin-Bereich</span>
-        </div>
+        {/* Icon */}
+        <Flex
+          w="64px" h="64px"
+          borderRadius="16px"
+          bg="rgba(100,120,160,0.2)"
+          border="1px solid rgba(100,120,160,0.3)"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="30px"
+          mb={5}
+        >
+          🛡️
+        </Flex>
 
-        <h1 style={s.title}>Kabinen-Bar</h1>
-        <p style={s.sub}>Verwaltung</p>
+        <Text fontSize="24px" fontWeight="800" letterSpacing="-0.5px" color="#eaedf2" mb="6px">
+          Admin-Bereich
+        </Text>
+        <Text fontSize="14px" color="#939dab" mb={10}>
+          Kabinen-Bar · TSV Bobingen
+        </Text>
 
-        {/* Error banner */}
+        {/* Error */}
         {error && (
-          <div style={s.errorBanner}>
-            <Lock size={14} color="#e0535f" />
-            <span>Benutzername oder Passwort falsch.</span>
-          </div>
+          <Box
+            w="full"
+            mb={4}
+            px={4}
+            py={3}
+            borderRadius="12px"
+            bg="rgba(224,83,95,0.1)"
+            border="1px solid rgba(224,83,95,0.3)"
+            color="#e0535f"
+            fontSize="14px"
+            textAlign="center"
+          >
+            {error}
+          </Box>
         )}
 
-        {/* Username */}
-        <div
-          style={{
-            ...s.inputWrap,
-            ...(error ? s.inputError : {}),
-            ...(focusUser ? s.inputFocus : {}),
-          }}
+        {/* Google button */}
+        <Box
+          as="button"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={3}
+          w="full"
+          h="52px"
+          borderRadius="12px"
+          bg="white"
+          color="#1a1a1a"
+          fontSize="15px"
+          fontWeight="600"
+          border="none"
+          cursor="pointer"
+          opacity={loading ? 0.6 : 1}
+          transition="opacity 0.15s"
+          onClick={handleGoogleLogin}
         >
-          <AtSign size={16} color="#5a6473" />
-          <input
-            style={s.input}
-            placeholder="Benutzername"
-            value={user}
-            onChange={(e) => { setUser(e.target.value); setError(false); }}
-            onFocus={() => setFocusUser(true)}
-            onBlur={() => setFocusUser(false)}
-            autoComplete="username"
-          />
-        </div>
+          <GoogleIcon />
+          {loading ? "Weiterleitung…" : "Mit Google anmelden"}
+        </Box>
 
-        {/* Password */}
-        <div
-          style={{
-            ...s.inputWrap,
-            ...(error ? s.inputError : {}),
-            ...(focusPass ? s.inputFocus : {}),
-          }}
-        >
-          <Lock size={16} color="#5a6473" />
-          <input
-            style={s.input}
-            type={show ? "text" : "password"}
-            placeholder="Passwort"
-            value={pass}
-            onChange={(e) => { setPass(e.target.value); setError(false); }}
-            onFocus={() => setFocusPass(true)}
-            onBlur={() => setFocusPass(false)}
-            autoComplete="current-password"
-          />
-          <button type="button" style={s.eyeBtn} onClick={() => setShow(!show)}>
-            {show ? <EyeOff size={16} color="#5a6473" /> : <Eye size={16} color="#5a6473" />}
-          </button>
-        </div>
-
-        <button
-          type="submit"
-          style={{ ...s.cta, ...(canSubmit ? s.ctaEnabled : s.ctaDisabled) }}
-          disabled={!canSubmit}
-        >
-          <Lock size={16} />
-          Als Admin einloggen
-        </button>
-
-        <p style={s.note}>Nur für Vereinsverwaltung · Zugang über den Vorstand.</p>
-      </form>
-    </div>
+        <Text fontSize="12px" color="#5c6675" textAlign="center" mt={4}>
+          Nur Admins haben Zugang zu diesem Bereich.
+        </Text>
+      </Flex>
+    </Flex>
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  root: {
-    minHeight: "100dvh",
-    background: "#0b0e13",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-  },
-  form: {
-    width: "100%",
-    maxWidth: 380,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 12,
-  },
-  crest: {
-    width: 76, height: 76, borderRadius: 999,
-    background: "#1a202a",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 32, marginBottom: 8,
-  },
-  badge: {
-    display: "flex", alignItems: "center", gap: 6,
-    padding: "4px 12px", borderRadius: 999,
-    background: "rgba(100,120,160,0.16)", border: "1px solid rgba(100,120,160,0.3)",
-    fontSize: 12, fontWeight: 600, color: "#6478a0", letterSpacing: "0.05em",
-  },
-  title: { fontSize: 25, fontWeight: 800, letterSpacing: "-0.5px", color: "#eaedf2", marginTop: 4 },
-  sub: { fontSize: 14, color: "#919bab", marginBottom: 8 },
-  errorBanner: {
-    width: "100%", display: "flex", alignItems: "center", gap: 8,
-    padding: "10px 14px", borderRadius: 10,
-    background: "rgba(224,83,95,0.14)", border: "1px solid rgba(224,83,95,0.3)",
-    fontSize: 13, color: "#e0535f",
-  },
-  inputWrap: {
-    width: "100%", display: "flex", alignItems: "center", gap: 10,
-    background: "#141921", border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 12, padding: "0 14px", height: 52,
-    transition: "border-color 0.12s, box-shadow 0.12s",
-  },
-  inputFocus: {
-    borderColor: "#6478a0",
-    boxShadow: "0 0 0 3px rgba(100,120,160,0.16)",
-  },
-  inputError: {
-    borderColor: "#e0535f",
-    boxShadow: "0 0 0 3px rgba(224,83,95,0.14)",
-  },
-  input: { flex: 1, background: "transparent", border: "none", outline: "none", color: "#eaedf2", fontSize: 15 },
-  eyeBtn: { background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" },
-  cta: {
-    width: "100%", height: 52, borderRadius: 12,
-    fontSize: 16, fontWeight: 700, border: "none", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-    marginTop: 4,
-  },
-  ctaEnabled: {
-    background: "#6478a0", color: "#fff",
-    boxShadow: "0 8px 20px -8px rgba(100,120,160,0.6)",
-  },
-  ctaDisabled: { background: "#1a202a", color: "#5a6473", cursor: "not-allowed" },
-  note: { fontSize: 12, color: "#5a6473", textAlign: "center", maxWidth: 280 },
-};
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48">
+      <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36.5 24 36.5c-5.2 0-9.6-3.5-11.2-8.2l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/>
+      <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.4-2.5 4.4-4.6 5.8l6.2 5.2C40.8 35.6 44 30.2 44 24c0-1.3-.1-2.7-.4-4z"/>
+    </svg>
+  );
+}

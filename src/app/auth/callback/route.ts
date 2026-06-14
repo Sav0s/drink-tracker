@@ -25,25 +25,27 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  // Create player record if this is the first login
-  const existingPlayer = await prisma.player.findUnique({
-    where: { id: user.id },
-  });
+  const next = searchParams.get("next") ?? "/home";
 
-  if (!existingPlayer) {
+  // Upsert player record
+  let player = await prisma.player.findUnique({ where: { id: user.id } });
+
+  if (!player) {
     const displayName =
       user.user_metadata?.full_name ||
       user.user_metadata?.name ||
       user.email?.split("@")[0] ||
       "Unbekannt";
 
-    await prisma.player.create({
-      data: {
-        id: user.id,
-        name: displayName,
-      },
+    player = await prisma.player.create({
+      data: { id: user.id, name: displayName },
     });
   }
 
-  return NextResponse.redirect(`${origin}/home`);
+  // Guard admin routes
+  if (next.startsWith("/admin") && !player.isAdmin) {
+    return NextResponse.redirect(`${origin}/home`);
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
 }

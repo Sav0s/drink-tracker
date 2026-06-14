@@ -1,5 +1,6 @@
 "use client";
 
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -14,26 +15,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.root}>
-      <div style={styles.content}>
-        {/* Crest */}
-        <div style={styles.crestWrap}>
-          <div style={styles.crestPlaceholder}>⚽</div>
-        </div>
+    <Flex minH="100dvh" flexDir="column" bg="#0d1014" px={5}>
+      <Flex flex={1} flexDir="column" alignItems="center" justifyContent="center">
+        <Flex
+          w="84px" h="84px" borderRadius="9999px" bg="#1b212b"
+          alignItems="center" justifyContent="center"
+          fontSize="36px" mb={5}
+        >
+          ⚽
+        </Flex>
 
-        <h1 style={styles.title}>Kabinen-Bar</h1>
-        <p style={styles.sub}>Getränke-Tracker · TSV Bobingen</p>
+        <Text fontSize="27px" fontWeight="800" letterSpacing="-0.5px" color="#eaedf2" mb={1.5}>
+          Kabinen-Bar
+        </Text>
+        <Text fontSize="14px" color="#939dab" mb={10}>
+          Getränke-Tracker · TSV Bobingen
+        </Text>
 
-        <button style={styles.googleBtn} onClick={handleGoogleLogin}>
+        <Box
+          as="button"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={3}
+          bg="white"
+          color="#1a1a1a"
+          border="none"
+          borderRadius="12px"
+          h="52px"
+          fontSize="15px"
+          fontWeight="600"
+          cursor="pointer"
+          w="full"
+          mb={4}
+          onClick={handleGoogleLogin}
+        >
           <GoogleIcon />
           Mit Google anmelden
-        </button>
+        </Box>
 
-        <p style={styles.footnote}>
+        <Text fontSize="12px" color="#5c6675" textAlign="center">
           Dein Google-Name wird als Anzeigename verwendet.
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -47,66 +72,3 @@ function GoogleIcon() {
     </svg>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  root: {
-    minHeight: "100dvh",
-    display: "flex",
-    flexDirection: "column",
-    background: "#0d1014",
-    padding: "0 20px",
-  },
-  content: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 0,
-  },
-  crestWrap: { marginBottom: 20 },
-  crestPlaceholder: {
-    width: 84,
-    height: 84,
-    borderRadius: 999,
-    background: "#1b212b",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 36,
-  },
-  title: {
-    fontSize: 27,
-    fontWeight: 800,
-    letterSpacing: "-0.5px",
-    color: "#eaedf2",
-    marginBottom: 6,
-  },
-  sub: {
-    fontSize: 14,
-    color: "#939dab",
-    marginBottom: 40,
-  },
-  googleBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    background: "#fff",
-    color: "#1a1a1a",
-    border: "none",
-    borderRadius: 12,
-    padding: "0 24px",
-    height: 52,
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-    width: "100%",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  footnote: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#5c6675",
-  },
-};

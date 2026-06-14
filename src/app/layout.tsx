@@ -14,11 +14,7 @@ export const metadata: Metadata = {
   description: "Getränke-Tracker für die Kabinen-Bar",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" className={inter.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
