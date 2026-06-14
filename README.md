@@ -5,8 +5,9 @@ Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen
 ## Tech Stack
 
 - **Next.js 16** (App Router, TypeScript)
-- **Chakra UI v3** mit Custom Dark-Theme
-- **Supabase** (Datenbank + Auth)
+- **Chakra UI v3** mit Custom Dark-Theme (style props, kein Tailwind)
+- **Supabase** (Auth — Google OAuth)
+- **Prisma v7** + **PostgreSQL** (Datenbank, via `@prisma/adapter-pg`)
 - **Lucide React** (Icons)
 - **Vercel** (Deployment)
 
@@ -14,10 +15,10 @@ Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen
 
 | Route | Screen | Beschreibung |
 |---|---|---|
-| `/login` | Player Login | Name aus Roster auswählen (kein Passwort) |
-| `/hauptseite` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
+| `/login` | Player Login | Google OAuth → Weiterleitung zu `/home` |
+| `/home` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
 | `/profil` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
-| `/admin/login` | Admin Login | Benutzername + Passwort (Steel-Theme) |
+| `/admin/login` | Admin Login | Google OAuth (Steel-Theme) |
 | `/admin/dashboard` | Admin Dashboard | Getränke CRUD + Abrechnung verwalten |
 
 ## Setup
@@ -31,6 +32,7 @@ npm install
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+DATABASE_URL=postgresql://...
 ```
 
 ```bash
@@ -51,8 +53,8 @@ Geldbeträge werden als **Integer-Cents** gespeichert. Formatierung: `1,50 €` 
 
 ## Auth
 
-- **Spieler:** Name-Auswahl aus DB-Roster → `sessionStorage`. Kein Passwort.
-- **Admin:** Supabase Auth (Username + Passwort). Route `/admin/*` geschützt.
+- **Spieler:** Google OAuth via Supabase. Nach Login Weiterleitung zu `/home`.
+- **Admin:** Google OAuth via Supabase. `is_admin = true` in der `players` Tabelle (Prisma). Route `/admin/*` geschützt via `/api/me`-Check im `useEffect`.
 
 ## Design
 
