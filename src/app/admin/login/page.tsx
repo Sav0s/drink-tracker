@@ -1,12 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+
+  // If already logged in as admin, skip login screen
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((player) => {
+        if (player.isAdmin) router.push("/admin/dashboard");
+      })
+      .catch(() => {/* not logged in — stay on login page */});
+  }, [router]);
 
   async function handleGoogleLogin() {
     setLoading(true);
