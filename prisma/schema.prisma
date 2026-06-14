@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Player {
+  id        String   @id           // = auth.users.id von Supabase
+  name      String   @unique       // Spitzname
+  isAdmin   Boolean  @default(false) @map("is_admin")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bookings Booking[]
+  payments Payment[]
+
+  @@map("players")
+}
+
+model Drink {
+  id         String   @id @default(uuid())
+  name       String
+  priceCents Int      @map("price_cents")
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  bookings Booking[]
+
+  @@map("drinks")
+}
+
+model BillingPeriod {
+  id                  String    @id @default(uuid())
+  startDate           DateTime  @map("start_date") @db.Date
+  endDate             DateTime? @map("end_date") @db.Date
+  status              String    @default("active") // 'active' | 'closed'
+  paymentInstructions String?   @map("payment_instructions")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  bookings Booking[]
+  payments Payment[]
+
+  @@map("billing_periods")
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  playerId  String   @map("player_id")
+  drinkId   String   @map("drink_id")
+  periodId  String   @map("period_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  player Player        @relation(fields: [playerId], references: [id])
+  drink  Drink         @relation(fields: [drinkId], references: [id])
+  period BillingPeriod @relation(fields: [periodId], references: [id])
+
+  @@index([playerId, periodId])
+  @@map("bookings")
+}
+
+model Payment {
+  id        String    @id @default(uuid())
+  playerId  String    @map("player_id")
+  periodId  String    @map("period_id")
+  paid      Boolean   @default(false)
+  paidAt    DateTime? @map("paid_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  player Player        @relation(fields: [playerId], references: [id])
+  period BillingPeriod @relation(fields: [periodId], references: [id])
+
+  @@unique([playerId, periodId])
+  @@map("payments")
+}
