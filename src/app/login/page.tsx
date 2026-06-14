@@ -45,7 +45,7 @@ export default function LoginPage() {
   function handleLogin() {
     if (!selected) return;
     sessionStorage.setItem("player", selected);
-    router.push("/hauptseite");
+    router.push("/home");
   }
 
   const firstName = selected?.split(" ")[0];
@@ -134,8 +134,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     background: "#0d1014",
-    maxWidth: 430,
-    margin: "0 auto",
     padding: "0 20px",
   },
   content: {
@@ -145,6 +143,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    overflow: "hidden",
   },
   crestWrap: { marginBottom: 20 },
   crestPlaceholder: {
@@ -211,7 +210,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    maxHeight: 340,
+    flex: 1,
     overflowY: "auto",
   },
   rosterRow: {

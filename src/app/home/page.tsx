@@ -29,6 +29,26 @@ interface EditSheet {
   drink: DrinkState | null;
 }
 
+function TallyBundle() {
+  return (
+    <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="2" y1="2" x2="2" y2="18" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="7" y1="2" x2="7" y2="18" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="12" y1="2" x2="12" y2="18" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="17" y1="2" x2="17" y2="18" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="0" y1="16" x2="22" y2="4" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function TallyBar() {
+  return (
+    <svg width="6" height="20" viewBox="0 0 6 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="3" y1="2" x2="3" y2="18" stroke="#939dab" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function Strichliste({ count }: { count: number }) {
   if (count === 0) {
     return <span style={{ fontSize: 12, color: "#5c6675" }}>noch keins diesen Monat</span>;
@@ -36,16 +56,10 @@ function Strichliste({ count }: { count: number }) {
   const bundles = Math.floor(count / 5);
   const remainder = count % 5;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-      {Array.from({ length: bundles }).map((_, i) => (
-        <span key={i} style={{ fontSize: 15, letterSpacing: -1, color: "#939dab" }}>
-          ⁴⃥
-        </span>
-      ))}
-      {Array.from({ length: remainder }).map((_, i) => (
-        <span key={i} style={{ fontSize: 15, color: "#939dab" }}>|</span>
-      ))}
-      <span style={{ fontSize: 12, color: "#5c6675", marginLeft: 4 }}>{count}×</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      {Array.from({ length: bundles }).map((_, i) => <TallyBundle key={i} />)}
+      {Array.from({ length: remainder }).map((_, i) => <TallyBar key={i} />)}
+      <span style={{ fontSize: 12, color: "#5c6675", marginLeft: 2 }}>{count}×</span>
     </div>
   );
 }
@@ -126,9 +140,9 @@ export default function HauptseiteePage() {
       {/* Drink cards */}
       <div style={s.drinkList}>
         {drinks.map((drink) => (
-          <button
+          <div
             key={drink.id}
-            style={s.drinkCard}
+            style={{ ...s.drinkCard, cursor: "pointer" }}
             onClick={() => bookDrink(drink)}
           >
             <div style={s.drinkInfo}>
@@ -147,7 +161,7 @@ export default function HauptseiteePage() {
                 <Plus size={22} color="#fff" />
               </div>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -210,8 +224,6 @@ const s: Record<string, React.CSSProperties> = {
   root: {
     minHeight: "100dvh",
     background: "#0d1014",
-    maxWidth: 430,
-    margin: "0 auto",
     paddingBottom: 80,
     position: "relative",
   },

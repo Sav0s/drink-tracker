@@ -90,7 +90,7 @@ export default function ProfilPage() {
     <div style={s.root}>
       {/* Top bar */}
       <header style={s.header}>
-        <button style={s.backBtn} onClick={() => router.push("/hauptseite")}>
+        <button style={s.backBtn} onClick={() => router.push("/home")}>
           <ChevronLeft size={20} color="#eaedf2" />
         </button>
         <span style={s.headerTitle}>Mein Konto</span>
@@ -180,7 +180,7 @@ export default function ProfilPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100dvh", background: "#0d1014", maxWidth: 430, margin: "0 auto", display: "flex", flexDirection: "column" },
+  root: { minHeight: "100dvh", background: "#0d1014", display: "flex", flexDirection: "column" },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" },
   backBtn: { background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center" },
   headerTitle: { fontSize: 17, fontWeight: 700, color: "#eaedf2" },

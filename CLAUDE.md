@@ -19,10 +19,9 @@ Next.js 16 App Router App für die Kabinen-Bar des TSV Bobingen. Zwei Nutzergrup
 ```
 src/
 ├── app/
-│   ├── (player)/          # Player-Bereich (Club-Blau #0468b3)
-│   │   ├── login/         # Name-Auswahl
-│   │   ├── hauptseite/    # Drink-Logging
-│   │   └── profil/        # Verlauf + Ausloggen
+│   ├── login/             # Name-Auswahl (Player)
+│   ├── home/              # Drink-Logging (Player)
+│   ├── profil/            # Verlauf + Ausloggen (Player)
 │   ├── admin/             # Admin-Bereich (Steel #6478a0)
 │   │   ├── login/
 │   │   └── dashboard/
