@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Provider } from "@/components/ui/provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="de" className={inter.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <Provider>{children}</Provider>
+        {children}
       </body>
     </html>
   );

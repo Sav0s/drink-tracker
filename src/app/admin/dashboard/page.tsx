@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
+import { createClient } from "@/lib/supabase/client";
 
 interface DrinkRow {
   id: string;
@@ -43,26 +45,15 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   return (
     <button
       onClick={() => onChange(!on)}
-      style={{
-        width: 42, height: 24, borderRadius: 999,
-        background: on ? "rgba(47,169,104,0.15)" : "#222a36",
-        border: `1px solid ${on ? "#2fa968" : "rgba(255,255,255,0.12)"}`,
-        position: "relative", cursor: "pointer", flexShrink: 0,
-        transition: "background 0.15s, border-color 0.15s",
-      }}
+      className={`relative w-[42px] h-6 rounded-full border cursor-pointer transition-colors ${on ? "bg-[#2fa968]/15 border-[#2fa968]" : "bg-[#222a36] border-white/12"}`}
     >
-      <div style={{
-        width: 18, height: 18, borderRadius: 999,
-        background: on ? "#2fa968" : "#5a6473",
-        position: "absolute", top: 2,
-        left: on ? 20 : 2,
-        transition: "left 0.15s, background 0.15s",
-      }} />
+      <div className={`absolute top-[3px] w-[18px] h-[18px] rounded-full transition-all ${on ? "left-[21px] bg-[#2fa968]" : "left-[3px] bg-[#5a6473]"}`} />
     </button>
   );
 }
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<"drinks" | "billing">("drinks");
   const [drinks, setDrinks] = useState<DrinkRow[]>(MOCK_DRINKS);
   const [newName, setNewName] = useState("");
@@ -73,6 +64,16 @@ export default function AdminDashboardPage() {
   const [openMember, setOpenMember] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
+  const [adminName, setAdminName] = useState("A");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/admin/login"); return; }
+      const name = user.user_metadata?.full_name || user.user_metadata?.name || "Admin";
+      setAdminName(name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2));
+    });
+  }, [router]);
 
   function toggleDrink(id: string, active: boolean) {
     setDrinks((prev) => prev.map((d) => (d.id === id ? { ...d, active } : d)));
@@ -89,276 +90,236 @@ export default function AdminDashboardPage() {
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, paid } : m)));
   }
 
+  async function logout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+  }
+
   const paid = members.filter((m) => m.paid).length;
   const offen = members.filter((m) => !m.paid).length;
   const sumOffen = members.filter((m) => !m.paid).reduce((s, m) => s + m.total_cents, 0);
   const gesamt = members.reduce((s, m) => s + m.total_cents, 0);
 
   return (
-    <div style={s.root}>
+    <div className="min-h-dvh bg-[#0b0e13] text-[#eaedf2]">
       {/* Topbar */}
-      <header style={s.topbar}>
-        <div style={s.brandWrap}>
-          <span style={s.crest}>⚽</span>
-          <span style={s.brand}>Kabinen-Bar <span style={s.brandMuted}>· Verwaltung</span></span>
+      <header className="flex items-center justify-between px-7 py-3.5 border-b border-white/7">
+        <div className="flex items-center gap-2.5">
+          <span className="text-2xl">⚽</span>
+          <span className="text-[17px] font-bold">
+            Kabinen-Bar <span className="text-[#939dab] font-normal">· Verwaltung</span>
+          </span>
         </div>
-        <div style={s.badgeWrap}>
-          <div style={s.badge}><Lock size={12} /> Admin</div>
-          <div style={s.adminAvatar}>A</div>
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#6478a0]/16 border border-[#6478a0]/30 text-xs font-semibold text-[#6478a0]">
+            Admin
+          </div>
+          <div className="w-8 h-8 rounded-full bg-[#6478a0] flex items-center justify-center text-[13px] font-bold text-white">
+            {adminName}
+          </div>
+          <button onClick={logout} className="p-1.5 cursor-pointer">
+            <LogOut size={16} color="#5c6675" />
+          </button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div style={s.tabs}>
+      <div className="flex border-b border-white/7 px-7">
         {(["drinks", "billing"] as const).map((t) => (
           <button
             key={t}
-            style={{ ...s.tab, ...(tab === t ? s.tabActive : {}) }}
             onClick={() => setTab(t)}
+            className={`py-3 mr-7 text-[15px] font-medium border-b-2 cursor-pointer transition-colors ${
+              tab === t ? "text-[#6478a0] border-[#6478a0]" : "text-[#5a6473] border-transparent"
+            }`}
           >
             {t === "drinks" ? "Getränke verwalten" : "Abrechnung"}
           </button>
         ))}
       </div>
 
-      <div style={s.content}>
-        {/* Tab A: Drinks */}
+      <div className="px-7 py-6 max-w-[960px] mx-auto">
+        {/* Tab A: Getränke */}
         {tab === "drinks" && (
           <div>
-            <div style={s.tabHeader}>
-              <h2 style={s.tabTitle}>Getränke verwalten</h2>
-              <span style={s.tabMeta}>{drinks.length} Getränke · {drinks.filter((d) => d.active).length} aktiv · {drinks.filter((d) => !d.active).length} inaktiv</span>
+            <div className="mb-4">
+              <h2 className="text-[19px] font-bold mb-1">Getränke verwalten</h2>
+              <p className="text-[13px] text-[#939dab]">
+                {drinks.length} Getränke · {drinks.filter((d) => d.active).length} aktiv · {drinks.filter((d) => !d.active).length} inaktiv
+              </p>
             </div>
 
-            <table style={s.table}>
-              <thead>
-                <tr>
-                  {["Name", "Preis", "Status", "Aktion"].map((h) => (
-                    <th key={h} style={s.th}>{h}</th>
+            <div className="bg-[#141921] rounded-xl overflow-hidden border border-white/7">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    {["Name", "Preis", "Status", "Aktion"].map((h) => (
+                      <th key={h} className="text-left px-4 py-2.5 text-[11px] font-bold tracking-widest uppercase text-[#5a6473] border-b border-white/7">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {drinks.map((d) => (
+                    <tr key={d.id} className={d.active ? "" : "opacity-45"}>
+                      <td className="px-4 py-3 text-sm border-b border-white/5">{d.name}</td>
+                      <td className="px-4 py-3 text-sm border-b border-white/5">{formatCents(d.price_cents)}</td>
+                      <td className="px-4 py-3 border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                          <Toggle on={d.active} onChange={(v) => toggleDrink(d.id, v)} />
+                          <span className={`text-[13px] ${d.active ? "text-[#2fa968]" : "text-[#5a6473]"}`}>
+                            {d.active ? "Aktiv" : "Inaktiv"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 border-b border-white/5">
+                        <button className="p-1 cursor-pointer"><Pencil size={14} color="#6478a0" /></button>
+                      </td>
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {drinks.map((d) => (
-                  <tr key={d.id} style={{ opacity: d.active ? 1 : 0.45 }}>
-                    <td style={s.td}>{d.name}</td>
-                    <td style={s.td}>{formatCents(d.price_cents)}</td>
-                    <td style={s.td}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Toggle on={d.active} onChange={(v) => toggleDrink(d.id, v)} />
-                        <span style={{ fontSize: 13, color: d.active ? "#2fa968" : "#5a6473" }}>
-                          {d.active ? "Aktiv" : "Inaktiv"}
-                        </span>
-                      </div>
+                  <tr>
+                    <td className="px-4 py-3">
+                      <input className="w-full bg-[#1a202a] border border-white/12 rounded-lg px-3 py-2 text-sm outline-none" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
                     </td>
-                    <td style={s.td}>
-                      <button style={s.iconBtn}><Pencil size={14} color="#6478a0" /></button>
+                    <td className="px-4 py-3">
+                      <input className="w-full bg-[#1a202a] border border-white/12 rounded-lg px-3 py-2 text-sm outline-none" placeholder="1,50" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Toggle on={newActive} onChange={setNewActive} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={addDrink} className="bg-[#6478a0] text-white rounded-lg px-4 py-2 text-[13px] font-semibold cursor-pointer">
+                        Speichern
+                      </button>
                     </td>
                   </tr>
-                ))}
-                {/* Add row */}
-                <tr>
-                  <td style={s.td}>
-                    <input style={s.addInput} placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
-                  </td>
-                  <td style={s.td}>
-                    <input style={s.addInput} placeholder="1,50" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} />
-                  </td>
-                  <td style={s.td}>
-                    <Toggle on={newActive} onChange={setNewActive} />
-                  </td>
-                  <td style={s.td}>
-                    <button style={s.saveBtn} onClick={addDrink}>Speichern</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* Tab B: Billing */}
+        {/* Tab B: Abrechnung */}
         {tab === "billing" && (
           <div>
-            <div style={s.billingHeader}>
-              {/* Period dropdown */}
-              <div style={{ position: "relative" }}>
-                <button style={s.periodBtn} onClick={() => setPeriodOpen(!periodOpen)}>
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="relative">
+                <button
+                  onClick={() => setPeriodOpen(!periodOpen)}
+                  className="flex items-center gap-2 bg-[#141921] border border-white/12 rounded-xl px-3.5 py-2 cursor-pointer text-sm"
+                >
                   <span>{MOCK_PERIODS[selPeriod].range}</span>
-                  <span style={{ ...s.statusPill, background: selPeriod === 0 ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)", color: selPeriod === 0 ? "#0468b3" : "#6478a0" }}>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selPeriod === 0 ? "bg-[#0468b3]/16 text-[#0468b3]" : "bg-[#6478a0]/16 text-[#6478a0]"}`}>
                     {selPeriod === 0 ? "Aktiv" : "Abgeschlossen"}
                   </span>
                   <ChevronDown size={16} color="#5a6473" />
                 </button>
                 {periodOpen && (
-                  <div style={s.dropdown}>
+                  <div className="absolute top-[calc(100%+6px)] left-0 z-50 bg-[#1a202a] border border-white/12 rounded-xl overflow-hidden min-w-[220px]">
                     {MOCK_PERIODS.map((p, i) => (
-                      <button key={p.id} style={s.dropdownItem} onClick={() => { setSelPeriod(i); setPeriodOpen(false); }}>
+                      <button key={p.id} onClick={() => { setSelPeriod(i); setPeriodOpen(false); }} className="block w-full text-left px-3.5 py-2.5 text-sm cursor-pointer hover:bg-white/5">
                         {p.range}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <button style={s.newPeriodBtn} onClick={() => setShowNew(!showNew)}>
+              <button onClick={() => setShowNew(!showNew)} className="flex items-center gap-1.5 bg-transparent border border-white/12 rounded-xl px-3.5 py-2 cursor-pointer text-sm">
                 <Plus size={14} /> Neue Abrechnung
               </button>
             </div>
 
-            {/* New period form */}
             {showNew && (
-              <div style={s.newForm}>
-                <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={s.fieldLabel}>Startdatum</label>
-                    <input style={s.formInput} type="date" />
+              <div className="bg-[#141921] border border-white/7 rounded-xl p-4 mb-4">
+                <div className="flex gap-3 mb-3">
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold tracking-widest uppercase text-[#5a6473] mb-1.5">Startdatum</label>
+                    <input type="date" className="w-full bg-[#1a202a] border border-white/12 rounded-lg px-3 py-2.5 text-sm outline-none" />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={s.fieldLabel}>Enddatum</label>
-                    <input style={s.formInput} type="date" />
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-bold tracking-widest uppercase text-[#5a6473] mb-1.5">Enddatum</label>
+                    <input type="date" className="w-full bg-[#1a202a] border border-white/12 rounded-lg px-3 py-2.5 text-sm outline-none" />
                   </div>
                 </div>
-                <label style={s.fieldLabel}>Zahlungshinweise</label>
-                <textarea style={s.formTextarea} rows={3} placeholder="IBAN, PayPal, Empfänger…" />
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
-                  <button style={s.cancelBtn} onClick={() => setShowNew(false)}>Abbrechen</button>
-                  <button style={s.createBtn}>Abrechnung erstellen</button>
+                <label className="block text-[11px] font-bold tracking-widest uppercase text-[#5a6473] mb-1.5">Zahlungshinweise</label>
+                <textarea rows={3} placeholder="IBAN, PayPal, Empfänger…" className="w-full bg-[#1a202a] border border-white/12 rounded-lg px-3 py-2.5 text-sm outline-none resize-y" />
+                <div className="flex gap-2 justify-end mt-3">
+                  <button onClick={() => setShowNew(false)} className="bg-transparent border border-white/12 rounded-lg px-4 py-2 text-[#939dab] text-sm cursor-pointer">Abbrechen</button>
+                  <button className="bg-[#6478a0] border-none rounded-lg px-4 py-2 text-white text-sm font-semibold cursor-pointer">Abrechnung erstellen</button>
                 </div>
               </div>
             )}
 
             {/* Summary bar */}
-            <div style={s.summaryBar}>
+            <div className="flex bg-[#141921] border border-white/7 rounded-xl overflow-hidden mb-4">
               {[
                 { label: "Mitglieder", value: members.length.toString() },
                 { label: "Getränke", value: members.reduce((s, m) => s + m.count, 0).toString() },
-                { label: "Bezahlt", value: paid.toString(), color: "#2fa968" },
-                { label: "Offen", value: offen.toString(), color: "#d6a23a" },
-                { label: "Summe offen", value: formatCents(sumOffen), color: "#d6a23a" },
+                { label: "Bezahlt", value: paid.toString(), color: "text-[#2fa968]" },
+                { label: "Offen", value: offen.toString(), color: "text-[#d6a23a]" },
+                { label: "Summe offen", value: formatCents(sumOffen), color: "text-[#d6a23a]" },
                 { label: "Gesamt", value: formatCents(gesamt) },
               ].map((item) => (
-                <div key={item.label} style={s.summaryItem}>
-                  <span style={s.summaryLabel}>{item.label}</span>
-                  <span style={{ ...s.summaryValue, color: item.color ?? "#eaedf2" }}>{item.value}</span>
+                <div key={item.label} className="flex-1 px-4 py-3 border-r border-white/7 last:border-r-0">
+                  <p className="text-[11px] font-bold tracking-widest uppercase text-[#5a6473] mb-1">{item.label}</p>
+                  <p className={`text-[18px] font-bold ${item.color ?? ""}`}>{item.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Member table */}
-            <div style={s.memberHeader}>
-              {["Mitglied", "Getränke", "Betrag", "Status", "Aktion"].map((h) => (
-                <span key={h} style={s.memberHeaderCell}>{h}</span>
-              ))}
-            </div>
-            {members.map((m) => (
-              <div key={m.id} style={s.memberCard}>
-                <div style={s.memberRow}>
-                  <button style={s.chevronBtn} onClick={() => setOpenMember(openMember === m.id ? null : m.id)}>
-                    <ChevronRight size={16} color="#5a6473" style={{ transform: openMember === m.id ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
-                  </button>
-                  <div style={s.memberAvatar}>{m.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</div>
-                  <span style={s.memberName}>{m.name}</span>
-                  <span style={s.memberCount}>{m.count}</span>
-                  <span style={s.memberAmount}>{formatCents(m.total_cents)}</span>
-                  <span style={{ ...s.pill, ...(m.paid ? s.pillPaid : s.pillOffen) }}>
-                    {m.paid ? "Bezahlt" : "Offen"}
-                  </span>
-                  {m.paid ? (
-                    <button style={s.iconBtn} onClick={() => markPaid(m.id, false)}><RotateCcw size={14} color="#5a6473" /></button>
-                  ) : (
-                    <button style={s.outlineBtn} onClick={() => markPaid(m.id, true)}>Als bezahlt</button>
+            {/* Member list */}
+            {members.map((m) => {
+              const initials = m.name.split(" ").map((w) => w[0]).join("").slice(0, 2);
+              const isOpen = openMember === m.id;
+              return (
+                <div key={m.id} className="bg-[#141921] border border-white/7 rounded-xl mb-1.5 overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-4 py-3">
+                    <button onClick={() => setOpenMember(isOpen ? null : m.id)} className="cursor-pointer">
+                      <ChevronRight size={16} color="#5a6473" style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
+                    </button>
+                    <div className="w-8 h-8 rounded-full bg-[#222a36] flex items-center justify-center text-xs font-bold text-[#6478a0] shrink-0">
+                      {initials}
+                    </div>
+                    <span className="flex-1 text-sm font-medium">{m.name}</span>
+                    <span className="text-sm text-[#939dab] w-16">{m.count} Stk.</span>
+                    <span className="text-sm font-semibold w-20">{formatCents(m.total_cents)}</span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold w-20 text-center ${m.paid ? "bg-[#2fa968]/15 text-[#2fa968]" : "bg-[#d6a23a]/15 text-[#d6a23a]"}`}>
+                      {m.paid ? "Bezahlt" : "Offen"}
+                    </span>
+                    {m.paid ? (
+                      <button onClick={() => markPaid(m.id, false)} className="p-1 cursor-pointer"><RotateCcw size={14} color="#5a6473" /></button>
+                    ) : (
+                      <button onClick={() => markPaid(m.id, true)} className="bg-transparent border border-white/12 rounded-lg px-3 py-1.5 text-[13px] cursor-pointer whitespace-nowrap">
+                        Als bezahlt
+                      </button>
+                    )}
+                  </div>
+
+                  {isOpen && (
+                    <div className="px-4 pb-3 pl-[58px]">
+                      <p className="text-[11px] font-bold tracking-widest uppercase text-[#5a6675] mb-2.5">Getrunken in diesem Zeitraum</p>
+                      {m.items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5">
+                          <span className="text-sm">{item.count} × {item.drink}</span>
+                          <span className="text-[13px] text-[#939dab]">{formatCents(item.price_cents)} / Stk.</span>
+                          <span className="text-sm font-semibold">{formatCents(item.count * item.price_cents)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between py-2 border-t border-white/12 mt-1">
+                        <span className="text-sm font-bold">Summe</span>
+                        <span />
+                        <span className="text-sm font-bold">{formatCents(m.total_cents)}</span>
+                      </div>
+                    </div>
                   )}
                 </div>
-                {openMember === m.id && (
-                  <div style={s.memberDetail}>
-                    <p style={s.detailTitle}>Getrunken in diesem Zeitraum</p>
-                    {m.items.map((item, i) => (
-                      <div key={i} style={s.detailRow}>
-                        <span style={{ fontSize: 14, color: "#eaedf2" }}>{item.count} × {item.drink}</span>
-                        <span style={{ fontSize: 13, color: "#939dab" }}>{formatCents(item.price_cents)} / Stk.</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#eaedf2" }}>{formatCents(item.count * item.price_cents)}</span>
-                      </div>
-                    ))}
-                    <div style={{ ...s.detailRow, borderTop: "1px solid rgba(255,255,255,0.12)", marginTop: 4, paddingTop: 10 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#eaedf2" }}>Summe</span>
-                      <span />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#eaedf2" }}>{formatCents(m.total_cents)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100dvh", background: "#0b0e13", color: "#eaedf2" },
-  topbar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", borderBottom: "1px solid rgba(255,255,255,0.07)" },
-  brandWrap: { display: "flex", alignItems: "center", gap: 10 },
-  crest: { fontSize: 24 },
-  brand: { fontSize: 17, fontWeight: 700, color: "#eaedf2" },
-  brandMuted: { color: "#919bab", fontWeight: 400 },
-  badgeWrap: { display: "flex", alignItems: "center", gap: 10 },
-  badge: { display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "rgba(100,120,160,0.16)", border: "1px solid rgba(100,120,160,0.3)", fontSize: 12, fontWeight: 600, color: "#6478a0" },
-  adminAvatar: { width: 34, height: 34, borderRadius: 999, background: "#6478a0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" },
-  tabs: { display: "flex", borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "0 28px" },
-  tab: { padding: "12px 0", marginRight: 28, background: "none", border: "none", cursor: "pointer", fontSize: 15, fontWeight: 500, color: "#5a6473", borderBottom: "2px solid transparent" },
-  tabActive: { color: "#6478a0", borderBottom: "2px solid #6478a0" },
-  content: { padding: "24px 28px", maxWidth: 960, margin: "0 auto" },
-  tabHeader: { marginBottom: 16 },
-  tabTitle: { fontSize: 19, fontWeight: 700, color: "#eaedf2", marginBottom: 4 },
-  tabMeta: { fontSize: 13, color: "#919bab" },
-  table: { width: "100%", borderCollapse: "collapse", background: "#141921", borderRadius: 12, overflow: "hidden" },
-  th: { textAlign: "left", padding: "10px 16px", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5a6473", borderBottom: "1px solid rgba(255,255,255,0.07)" },
-  td: { padding: "12px 16px", fontSize: 14, color: "#eaedf2", borderBottom: "1px solid rgba(255,255,255,0.05)" },
-  addInput: { background: "#1a202a", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "8px 12px", color: "#eaedf2", fontSize: 14, outline: "none", width: "100%" },
-  saveBtn: { background: "#6478a0", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  iconBtn: { background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center" },
-  billingHeader: { display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" },
-  periodBtn: {
-    display: "flex", alignItems: "center", gap: 8,
-    background: "#141921", border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: "#eaedf2", fontSize: 14,
-  },
-  statusPill: { borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600 },
-  dropdown: {
-    position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 50,
-    background: "#1a202a", border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10, overflow: "hidden", minWidth: 220,
-  },
-  dropdownItem: { display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: "none", border: "none", cursor: "pointer", color: "#eaedf2", fontSize: 14 },
-  newPeriodBtn: {
-    display: "flex", alignItems: "center", gap: 6,
-    background: "none", border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: "#eaedf2", fontSize: 14,
-  },
-  newForm: { background: "#141921", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 16, marginBottom: 16 },
-  fieldLabel: { display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5a6473", marginBottom: 6 },
-  formInput: { width: "100%", background: "#1a202a", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "10px 12px", color: "#eaedf2", fontSize: 14, outline: "none" },
-  formTextarea: { width: "100%", background: "#1a202a", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "10px 12px", color: "#eaedf2", fontSize: 14, outline: "none", resize: "vertical" },
-  cancelBtn: { background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "8px 16px", color: "#919bab", fontSize: 14, cursor: "pointer" },
-  createBtn: { background: "#6478a0", border: "none", borderRadius: 8, padding: "8px 16px", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" },
-  summaryBar: { display: "flex", gap: 2, background: "#141921", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden", marginBottom: 16 },
-  summaryItem: { flex: 1, padding: "12px 16px", borderRight: "1px solid rgba(255,255,255,0.07)" },
-  summaryLabel: { display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a6473", marginBottom: 4 },
-  summaryValue: { fontSize: 18, fontWeight: 700 },
-  memberHeader: { display: "grid", gridTemplateColumns: "2fr 80px 100px 100px 120px", gap: 0, padding: "8px 16px", marginBottom: 4 },
-  memberHeaderCell: { fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5a6473" },
-  memberCard: { background: "#141921", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, marginBottom: 6, overflow: "hidden" },
-  memberRow: { display: "flex", alignItems: "center", gap: 10, padding: "12px 16px" },
-  chevronBtn: { background: "none", border: "none", cursor: "pointer", padding: 0 },
-  memberAvatar: { width: 32, height: 32, borderRadius: 999, background: "#222a36", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#6478a0", flexShrink: 0 },
-  memberName: { flex: 1, fontSize: 14, fontWeight: 500 },
-  memberCount: { width: 80, fontSize: 14, color: "#919bab" },
-  memberAmount: { width: 100, fontSize: 14, fontWeight: 600 },
-  pill: { borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 600, width: 100, textAlign: "center" },
-  pillPaid: { background: "rgba(47,169,104,0.15)", color: "#2fa968" },
-  pillOffen: { background: "rgba(214,162,58,0.15)", color: "#d6a23a" },
-  outlineBtn: { background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "6px 12px", color: "#eaedf2", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" },
-  memberDetail: { padding: "0 16px 14px 58px" },
-  detailTitle: { fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#5a6473", marginBottom: 10 },
-  detailRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" },
-};

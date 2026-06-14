@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
+import { createClient } from "@/lib/supabase/client";
 
 interface PeriodRow {
   date: string;
@@ -51,16 +51,14 @@ const MOCK_PERIODS: Period[] = [
     status: "bezahlt",
     count: 15,
     total_cents: 1650,
-    rows: [
-      { date: "30.04.", drink: "Cola", price_cents: 100 },
-    ],
+    rows: [{ date: "30.04.", drink: "Cola", price_cents: 100 }],
   },
 ];
 
-const STATUS_STYLES: Record<string, { bg: string; color: string; dot: string; label: string }> = {
-  aktiv: { bg: "rgba(4,104,179,0.16)", color: "#0468b3", dot: "#0468b3", label: "Aktiv" },
-  ausstehend: { bg: "rgba(214,162,58,0.15)", color: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
-  bezahlt: { bg: "rgba(47,169,104,0.15)", color: "#2fa968", dot: "#2fa968", label: "Bezahlt" },
+const STATUS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+  aktiv:      { bg: "bg-[rgba(4,104,179,0.16)]",  text: "text-[#0468b3]", dot: "text-[#0468b3]", label: "Aktiv" },
+  ausstehend: { bg: "bg-[rgba(214,162,58,0.15)]", text: "text-[#d6a23a]", dot: "text-[#d6a23a]", label: "Ausstehend" },
+  bezahlt:    { bg: "bg-[rgba(47,169,104,0.15)]", text: "text-[#2fa968]", dot: "text-[#2fa968]", label: "Bezahlt" },
 };
 
 export default function ProfilPage() {
@@ -82,12 +80,9 @@ export default function ProfilPage() {
   }, [router]);
 
   const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-
   const activePeriod = MOCK_PERIODS.find((p) => p.status === "aktiv");
   const pendingPeriods = MOCK_PERIODS.filter((p) => p.status === "ausstehend");
-  const totalOwed =
-    (activePeriod?.total_cents ?? 0) +
-    pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
+  const totalOwed = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
     const supabase = createClient();
@@ -96,78 +91,78 @@ export default function ProfilPage() {
   }
 
   return (
-    <div style={s.root}>
-      {/* Top bar */}
-      <header style={s.header}>
-        <button style={s.backBtn} onClick={() => router.push("/home")}>
+    <div className="min-h-dvh bg-[#0d1014] flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-5 py-3.5 border-b border-white/7">
+        <button onClick={() => router.push("/home")} className="p-1.5 cursor-pointer">
           <ChevronLeft size={20} color="#eaedf2" />
         </button>
-        <span style={s.headerTitle}>Mein Konto</span>
-        <div style={{ width: 36 }} />
+        <span className="text-[17px] font-bold text-[#eaedf2]">Mein Konto</span>
+        <div className="w-9" />
       </header>
 
-      <div style={s.scroll}>
+      <div className="flex-1 overflow-y-auto px-5 pt-5">
         {/* Profile head */}
-        <div style={s.profileHead}>
-          <div style={s.bigAvatar}>{initials}</div>
+        <div className="flex items-center gap-4 mb-5">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0468b3] to-[#0576cc] flex items-center justify-center text-xl font-extrabold text-white shrink-0">
+            {initials}
+          </div>
           <div>
-            <p style={s.profileName}>{player}</p>
-            <p style={s.profileSub}>Mitglied · 1. Mannschaft</p>
+            <p className="text-[18px] font-bold text-[#eaedf2] mb-0.5">{player}</p>
+            <p className="text-[13px] text-[#939dab]">Mitglied · 1. Mannschaft</p>
           </div>
         </div>
 
         {/* Balance card */}
-        <div style={s.balanceCard}>
-          <p style={s.balanceLabel}>Du schuldest gesamt</p>
-          <p style={s.balanceAmount}>{formatCents(totalOwed)}</p>
-          <div style={s.balanceBreakdown}>
+        <div className="p-5 rounded-2xl bg-[#151a21] border border-white/7 mb-6">
+          <p className="text-[11px] font-bold tracking-widest uppercase text-[#939dab] mb-1.5">Du schuldest gesamt</p>
+          <p className="text-[34px] font-extrabold tracking-tight text-[#eaedf2] mb-3">{formatCents(totalOwed)}</p>
+          <div className="flex gap-4">
             {activePeriod && (
-              <span style={s.breakdownItem}>
-                <span style={{ color: "#0468b3" }}>●</span>{" "}
-                {formatCents(activePeriod.total_cents)} laufend
+              <span className="text-[13px] text-[#939dab] flex items-center gap-1.5">
+                <span className="text-[#0468b3]">●</span> {formatCents(activePeriod.total_cents)} laufend
               </span>
             )}
             {pendingPeriods.length > 0 && (
-              <span style={s.breakdownItem}>
-                <span style={{ color: "#d6a23a" }}>●</span>{" "}
-                {formatCents(pendingPeriods.reduce((s, p) => s + p.total_cents, 0))} ausstehend
+              <span className="text-[13px] text-[#939dab] flex items-center gap-1.5">
+                <span className="text-[#d6a23a]">●</span> {formatCents(pendingPeriods.reduce((s, p) => s + p.total_cents, 0))} ausstehend
               </span>
             )}
           </div>
         </div>
 
         {/* Abrechnungen */}
-        <p style={s.sectionLabel}>Abrechnungen</p>
+        <p className="text-[11px] font-bold tracking-widest uppercase text-[#5c6675] mb-2.5">Abrechnungen</p>
 
         {MOCK_PERIODS.map((period) => {
-          const st = STATUS_STYLES[period.status];
+          const st = STATUS[period.status];
           const isOpen = openId === period.id;
           return (
-            <div key={period.id} style={s.periodCard}>
+            <div key={period.id} className="bg-[#151a21] border border-white/7 rounded-xl mb-1.5 overflow-hidden">
               <button
-                style={s.periodRow}
                 onClick={() => setOpenId(isOpen ? null : period.id)}
+                className="w-full flex items-center gap-2 px-3.5 py-3 cursor-pointer"
               >
                 <ChevronRight
                   size={16}
                   color="#5c6675"
                   style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
                 />
-                <span style={s.periodRange}>{period.range}</span>
-                <span style={{ ...s.statusPill, background: st.bg, color: st.color }}>
-                  <span style={{ color: st.dot, fontSize: 8 }}>●</span> {st.label}
+                <span className="text-sm font-medium text-[#eaedf2] flex-1 text-left">{period.range}</span>
+                <span className={`flex items-center gap-1 ${st.bg} ${st.text} rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap`}>
+                  <span className={`text-[8px] ${st.dot}`}>●</span> {st.label}
                 </span>
-                <span style={s.periodMeta}>· {period.count} Getränke</span>
-                <span style={s.periodTotal}>{formatCents(period.total_cents)}</span>
+                <span className="text-xs text-[#5c6675]">· {period.count}</span>
+                <span className="text-sm font-semibold text-[#eaedf2] ml-auto">{formatCents(period.total_cents)}</span>
               </button>
 
               {isOpen && (
-                <div style={s.periodDetail}>
+                <div className="px-3.5 pb-3">
                   {period.rows.map((row, i) => (
-                    <div key={i} style={s.detailRow}>
-                      <span style={s.detailDate}>{row.date}</span>
-                      <span style={s.detailDrink}>{row.drink}</span>
-                      <span style={s.detailPrice}>{formatCents(row.price_cents)}</span>
+                    <div key={i} className="flex items-center gap-2.5 py-2 border-t border-white/5">
+                      <span className="text-xs text-[#5c6675] w-10">{row.date}</span>
+                      <span className="text-[13px] text-[#eaedf2] flex-1">{row.drink}</span>
+                      <span className="text-[13px] text-[#939dab]">{formatCents(row.price_cents)}</span>
                     </div>
                   ))}
                 </div>
@@ -177,9 +172,12 @@ export default function ProfilPage() {
         })}
       </div>
 
-      {/* Ausloggen */}
-      <div style={s.footer}>
-        <button style={s.logoutBtn} onClick={logout}>
+      {/* Logout */}
+      <div className="px-5 pb-8 pt-4">
+        <button
+          onClick={logout}
+          className="w-full h-13 rounded-xl bg-[#e0535f] text-white text-base font-bold flex items-center justify-center gap-2 cursor-pointer"
+        >
           <LogOut size={16} />
           Ausloggen
         </button>
@@ -187,53 +185,3 @@ export default function ProfilPage() {
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  root: { minHeight: "100dvh", background: "#0d1014", display: "flex", flexDirection: "column" },
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" },
-  backBtn: { background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center" },
-  headerTitle: { fontSize: 17, fontWeight: 700, color: "#eaedf2" },
-  scroll: { flex: 1, overflowY: "auto", padding: "20px 20px 0" },
-  profileHead: { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
-  bigAvatar: {
-    width: 58, height: 58, borderRadius: 999,
-    background: "linear-gradient(135deg, #0468b3, #0576cc)",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 20, fontWeight: 800, color: "#fff", flexShrink: 0,
-  },
-  profileName: { fontSize: 18, fontWeight: 700, color: "#eaedf2", marginBottom: 2 },
-  profileSub: { fontSize: 13, color: "#939dab" },
-  balanceCard: {
-    padding: "18px 20px", borderRadius: 16,
-    background: "#151a21", border: "1px solid rgba(255,255,255,0.07)",
-    marginBottom: 24,
-  },
-  balanceLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#939dab", marginBottom: 6 },
-  balanceAmount: { fontSize: 34, fontWeight: 800, letterSpacing: "-1.2px", color: "#eaedf2", marginBottom: 12 },
-  balanceBreakdown: { display: "flex", gap: 16 },
-  breakdownItem: { fontSize: 13, color: "#939dab", display: "flex", alignItems: "center", gap: 6 },
-  sectionLabel: { fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5c6675", marginBottom: 10 },
-  periodCard: { background: "#151a21", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, marginBottom: 6, overflow: "hidden" },
-  periodRow: {
-    width: "100%", display: "flex", alignItems: "center", gap: 8,
-    padding: "12px 14px", background: "none", border: "none", cursor: "pointer",
-    color: "#eaedf2", textAlign: "left",
-  },
-  periodRange: { fontSize: 14, fontWeight: 500, color: "#eaedf2", flex: 1 },
-  statusPill: { borderRadius: 999, padding: "2px 8px", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" },
-  periodMeta: { fontSize: 12, color: "#5c6675" },
-  periodTotal: { fontSize: 14, fontWeight: 600, color: "#eaedf2", marginLeft: "auto" },
-  periodDetail: { padding: "0 14px 12px" },
-  detailRow: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.05)" },
-  detailDate: { fontSize: 12, color: "#5c6675", width: 40 },
-  detailDrink: { fontSize: 13, color: "#eaedf2", flex: 1 },
-  detailPrice: { fontSize: 13, color: "#939dab" },
-  footer: { padding: "16px 20px 32px" },
-  logoutBtn: {
-    width: "100%", height: 52, borderRadius: 12,
-    background: "#e0535f", color: "#fff",
-    fontSize: 16, fontWeight: 700,
-    border: "none", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-  },
-};
