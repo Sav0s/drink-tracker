@@ -1,54 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { Search, Check, X } from "lucide-react";
-
-const MOCK_PLAYERS = [
-  "Andreas Müller",
-  "Benedikt Schmid",
-  "Christian Wagner",
-  "David Bauer",
-  "Emanuel Huber",
-  "Florian Maier",
-  "Georg Schneider",
-  "Hans-Peter Klein",
-  "Jonas Fischer",
-  "Kevin Lehmann",
-  "Lukas Zimmermann",
-  "Markus Wolf",
-];
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
-
-  const filtered = useMemo(
-    () =>
-      MOCK_PLAYERS.filter((p) =>
-        p.toLowerCase().includes(query.toLowerCase())
-      ),
-    [query]
-  );
-
-  function handleLogin() {
-    if (!selected) return;
-    sessionStorage.setItem("player", selected);
-    router.push("/home");
+  async function handleGoogleLogin() {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   }
-
-  const firstName = selected?.split(" ")[0];
 
   return (
     <div style={styles.root}>
@@ -61,70 +24,27 @@ export default function LoginPage() {
         <h1 style={styles.title}>Kabinen-Bar</h1>
         <p style={styles.sub}>Getränke-Tracker · TSV Bobingen</p>
 
-        <label style={styles.fieldLabel}>DEIN NAME</label>
-
-        {/* Search input */}
-        <div style={styles.inputWrap}>
-          <Search size={16} color="#5c6675" style={{ flexShrink: 0 }} />
-          <input
-            style={styles.input}
-            placeholder="Suche deinen Namen…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button style={styles.clearBtn} onClick={() => setQuery("")}>
-              <X size={14} color="#5c6675" />
-            </button>
-          )}
-        </div>
-
-        {/* Roster */}
-        <div style={styles.roster}>
-          {filtered.map((player) => {
-            const isSelected = selected === player;
-            return (
-              <button
-                key={player}
-                style={{
-                  ...styles.rosterRow,
-                  ...(isSelected ? styles.rosterRowSelected : {}),
-                }}
-                onClick={() => setSelected(player)}
-              >
-                <div
-                  style={{
-                    ...styles.avatar,
-                    ...(isSelected ? styles.avatarSelected : {}),
-                  }}
-                >
-                  {initials(player)}
-                </div>
-                <span style={styles.playerName}>{player}</span>
-                {isSelected && (
-                  <Check size={16} color="#0468b3" style={{ marginLeft: "auto" }} />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Pinned CTA */}
-      <div style={styles.footer}>
-        <button
-          style={{
-            ...styles.cta,
-            ...(selected ? styles.ctaEnabled : styles.ctaDisabled),
-          }}
-          disabled={!selected}
-          onClick={handleLogin}
-        >
-          {selected ? `Einloggen als ${firstName}` : "Einloggen"}
+        <button style={styles.googleBtn} onClick={handleGoogleLogin}>
+          <GoogleIcon />
+          Mit Google anmelden
         </button>
-        <p style={styles.footnote}>Dein Name wird als Login verwendet.</p>
+
+        <p style={styles.footnote}>
+          Dein Google-Name wird als Anzeigename verwendet.
+        </p>
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48">
+      <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33.1 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.2C29.4 35.6 26.8 36.5 24 36.5c-5.2 0-9.6-3.5-11.2-8.2l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/>
+      <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.9 2.4-2.5 4.4-4.6 5.8l6.2 5.2C40.8 35.6 44 30.2 44 24c0-1.3-.1-2.7-.4-4z"/>
+    </svg>
   );
 }
 
@@ -138,12 +58,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   content: {
     flex: 1,
-    paddingTop: 48,
-    paddingBottom: 24,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    overflow: "hidden",
+    justifyContent: "center",
+    gap: 0,
   },
   crestWrap: { marginBottom: 20 },
   crestPlaceholder: {
@@ -166,116 +85,24 @@ const styles: Record<string, React.CSSProperties> = {
   sub: {
     fontSize: 14,
     color: "#939dab",
-    marginBottom: 32,
+    marginBottom: 40,
   },
-  fieldLabel: {
-    alignSelf: "flex-start",
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    color: "#5c6675",
-    marginBottom: 8,
-  },
-  inputWrap: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    background: "#151a21",
-    border: "1px solid rgba(255,255,255,0.12)",
-    borderRadius: 12,
-    padding: "0 14px",
-    height: 52,
-    marginBottom: 12,
-  },
-  input: {
-    flex: 1,
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#eaedf2",
-    fontSize: 15,
-  },
-  clearBtn: {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: 0,
-    display: "flex",
-    alignItems: "center",
-  },
-  roster: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    flex: 1,
-    overflowY: "auto",
-  },
-  rosterRow: {
-    width: "100%",
+  googleBtn: {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    padding: "10px 14px",
+    background: "#fff",
+    color: "#1a1a1a",
+    border: "none",
     borderRadius: 12,
-    border: "1px solid transparent",
-    background: "transparent",
+    padding: "0 24px",
+    height: 52,
+    fontSize: 15,
+    fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.12s",
-    color: "#eaedf2",
-  },
-  rosterRowSelected: {
-    background: "rgba(4,104,179,0.16)",
-    border: "1px solid #0468b3",
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
-    background: "#222934",
-    display: "flex",
-    alignItems: "center",
+    width: "100%",
     justifyContent: "center",
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#939dab",
-    flexShrink: 0,
-  },
-  avatarSelected: {
-    background: "#0468b3",
-    color: "#fff",
-  },
-  playerName: {
-    fontSize: 15,
-    fontWeight: 500,
-  },
-  footer: {
-    paddingBottom: 32,
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  cta: {
-    width: "100%",
-    height: 52,
-    borderRadius: 12,
-    fontSize: 16,
-    fontWeight: 700,
-    border: "none",
-    cursor: "pointer",
-    transition: "box-shadow 0.15s, background 0.15s",
-  },
-  ctaEnabled: {
-    background: "#0468b3",
-    color: "#fff",
-    boxShadow: "0 8px 20px -8px rgba(4,104,179,0.7)",
-  },
-  ctaDisabled: {
-    background: "#1b212b",
-    color: "#5c6675",
-    cursor: "not-allowed",
+    marginBottom: 16,
   },
   footnote: {
     textAlign: "center",

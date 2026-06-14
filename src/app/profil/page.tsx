@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 
@@ -68,9 +69,16 @@ export default function ProfilPage() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    const p = sessionStorage.getItem("player");
-    if (!p) { router.push("/login"); return; }
-    setPlayer(p);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/login"); return; }
+      const name =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split("@")[0] ||
+        "Spieler";
+      setPlayer(name);
+    });
   }, [router]);
 
   const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -81,8 +89,9 @@ export default function ProfilPage() {
     (activePeriod?.total_cents ?? 0) +
     pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
-  function logout() {
-    sessionStorage.removeItem("player");
+  async function logout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push("/login");
   }
 
