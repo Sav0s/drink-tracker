@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { User, Plus, Pencil, Check, RotateCcw } from "lucide-react";
 import { formatCents } from "@/types";
 
@@ -73,9 +74,16 @@ export default function HauptseiteePage() {
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
 
   useEffect(() => {
-    const p = sessionStorage.getItem("player");
-    if (!p) { router.push("/login"); return; }
-    setPlayer(p);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/login"); return; }
+      const name =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split("@")[0] ||
+        "Spieler";
+      setPlayer(name);
+    });
   }, [router]);
 
   const saldo = drinks.reduce((sum, d) => sum + d.count * d.price_cents, 0);
