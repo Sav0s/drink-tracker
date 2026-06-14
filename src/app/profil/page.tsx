@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -29,9 +30,9 @@ const MOCK_PERIODS: Period[] = [
     count: 18,
     total_cents: 1850,
     rows: [
-      { date: "12.06.", drink: "Bier 0,33l", price_cents: 150 },
-      { date: "11.06.", drink: "Cola", price_cents: 100 },
-      { date: "10.06.", drink: "Wasser", price_cents: 50 },
+      { date: "12.06.", drink: "Bier 0,33l",   price_cents: 150 },
+      { date: "11.06.", drink: "Cola",          price_cents: 100 },
+      { date: "10.06.", drink: "Wasser",        price_cents: 50  },
     ],
   },
   {
@@ -41,8 +42,8 @@ const MOCK_PERIODS: Period[] = [
     count: 22,
     total_cents: 2400,
     rows: [
-      { date: "31.05.", drink: "Apfelschorle", price_cents: 80 },
-      { date: "28.05.", drink: "Bier 0,33l", price_cents: 150 },
+      { date: "31.05.", drink: "Apfelschorle", price_cents: 80  },
+      { date: "28.05.", drink: "Bier 0,33l",   price_cents: 150 },
     ],
   },
   {
@@ -51,14 +52,16 @@ const MOCK_PERIODS: Period[] = [
     status: "bezahlt",
     count: 15,
     total_cents: 1650,
-    rows: [{ date: "30.04.", drink: "Cola", price_cents: 100 }],
+    rows: [
+      { date: "30.04.", drink: "Cola",          price_cents: 100 },
+    ],
   },
 ];
 
 const STATUS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-  aktiv:      { bg: "bg-[rgba(4,104,179,0.16)]",  text: "text-[#0468b3]", dot: "text-[#0468b3]", label: "Aktiv" },
-  ausstehend: { bg: "bg-[rgba(214,162,58,0.15)]", text: "text-[#d6a23a]", dot: "text-[#d6a23a]", label: "Ausstehend" },
-  bezahlt:    { bg: "bg-[rgba(47,169,104,0.15)]", text: "text-[#2fa968]", dot: "text-[#2fa968]", label: "Bezahlt" },
+  aktiv:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
+  ausstehend: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
+  bezahlt:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
 };
 
 export default function ProfilPage() {
@@ -72,17 +75,17 @@ export default function ProfilPage() {
       if (!user) { router.push("/login"); return; }
       const name =
         user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
+        user.user_metadata?.name      ||
+        user.email?.split("@")[0]     ||
         "Spieler";
       setPlayer(name);
     });
   }, [router]);
 
-  const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod = MOCK_PERIODS.find((p) => p.status === "aktiv");
+  const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const activePeriod  = MOCK_PERIODS.find((p) => p.status === "aktiv");
   const pendingPeriods = MOCK_PERIODS.filter((p) => p.status === "ausstehend");
-  const totalOwed = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
+  const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
     const supabase = createClient();
@@ -91,97 +94,201 @@ export default function ProfilPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-[#0d1014] flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3.5 border-b border-white/7">
-        <button onClick={() => router.push("/home")} className="p-1.5 cursor-pointer">
-          <ChevronLeft size={20} color="#eaedf2" />
-        </button>
-        <span className="text-[17px] font-bold text-[#eaedf2]">Mein Konto</span>
-        <div className="w-9" />
-      </header>
+    <Flex minH="100dvh" bg="#0d1014" flexDir="column">
 
-      <div className="flex-1 overflow-y-auto px-5 pt-5">
+      {/* Header */}
+      <Flex
+        as="header"
+        alignItems="center"
+        justifyContent="space-between"
+        px={5}
+        py="14px"
+        borderBottom="1px solid rgba(255,255,255,0.07)"
+      >
+        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push("/home")}>
+          <ChevronLeft size={20} color="#eaedf2" />
+        </Box>
+        <Text fontSize="17px" fontWeight="700" color="#eaedf2">Mein Konto</Text>
+        <Box w="36px" />
+      </Flex>
+
+      <Box flex={1} overflowY="auto" px={5} pt={5}>
+
         {/* Profile head */}
-        <div className="flex items-center gap-4 mb-5">
-          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0468b3] to-[#0576cc] flex items-center justify-center text-xl font-extrabold text-white shrink-0">
+        <Flex alignItems="center" gap={4} mb={5}>
+          <Flex
+            w="56px" h="56px" borderRadius="9999px"
+            bg="linear-gradient(135deg, #0468b3, #0576cc)"
+            alignItems="center" justifyContent="center"
+            fontSize="20px" fontWeight="800" color="white"
+            flexShrink={0}
+          >
             {initials}
-          </div>
-          <div>
-            <p className="text-[18px] font-bold text-[#eaedf2] mb-0.5">{player}</p>
-            <p className="text-[13px] text-[#939dab]">Mitglied · 1. Mannschaft</p>
-          </div>
-        </div>
+          </Flex>
+          <Box>
+            <Text fontSize="18px" fontWeight="700" color="#eaedf2" mb="2px">{player}</Text>
+            <Text fontSize="13px" color="#939dab">Mitglied · 1. Mannschaft</Text>
+          </Box>
+        </Flex>
 
         {/* Balance card */}
-        <div className="p-5 rounded-2xl bg-[#151a21] border border-white/7 mb-6">
-          <p className="text-[11px] font-bold tracking-widest uppercase text-[#939dab] mb-1.5">Du schuldest gesamt</p>
-          <p className="text-[34px] font-extrabold tracking-tight text-[#eaedf2] mb-3">{formatCents(totalOwed)}</p>
-          <div className="flex gap-4">
+        <Box
+          p={5}
+          borderRadius="16px"
+          bg="rgba(4,104,179,0.12)"
+          border="1px solid rgba(4,104,179,0.3)"
+          mb={6}
+        >
+          <Text
+            fontSize="11px" fontWeight="700" letterSpacing="0.1em"
+            textTransform="uppercase" color="#939dab" mb="6px"
+          >
+            Du schuldest gesamt
+          </Text>
+          <Text fontSize="34px" fontWeight="800" letterSpacing="-1px" color="#eaedf2" mb={3}>
+            {formatCents(totalOwed)}
+          </Text>
+          <Flex gap={4} flexWrap="wrap">
             {activePeriod && (
-              <span className="text-[13px] text-[#939dab] flex items-center gap-1.5">
-                <span className="text-[#0468b3]">●</span> {formatCents(activePeriod.total_cents)} laufend
-              </span>
+              <Flex as="span" alignItems="center" gap="6px" fontSize="13px" color="#939dab">
+                <Text as="span" color="#0468b3">●</Text>
+                {formatCents(activePeriod.total_cents)} laufend
+              </Flex>
             )}
             {pendingPeriods.length > 0 && (
-              <span className="text-[13px] text-[#939dab] flex items-center gap-1.5">
-                <span className="text-[#d6a23a]">●</span> {formatCents(pendingPeriods.reduce((s, p) => s + p.total_cents, 0))} ausstehend
-              </span>
+              <Flex as="span" alignItems="center" gap="6px" fontSize="13px" color="#939dab">
+                <Text as="span" color="#d6a23a">●</Text>
+                {formatCents(pendingPeriods.reduce((s, p) => s + p.total_cents, 0))} ausstehend
+              </Flex>
             )}
-          </div>
-        </div>
+          </Flex>
+        </Box>
 
-        {/* Abrechnungen */}
-        <p className="text-[11px] font-bold tracking-widest uppercase text-[#5c6675] mb-2.5">Abrechnungen</p>
+        {/* Section label */}
+        <Text
+          fontSize="11px" fontWeight="700" letterSpacing="0.1em"
+          textTransform="uppercase" color="#5c6675" mb="10px"
+        >
+          Abrechnungen
+        </Text>
 
+        {/* Period rows */}
         {MOCK_PERIODS.map((period) => {
-          const st = STATUS[period.status];
+          const st     = STATUS[period.status];
           const isOpen = openId === period.id;
           return (
-            <div key={period.id} className="bg-[#151a21] border border-white/7 rounded-xl mb-1.5 overflow-hidden">
-              <button
+            <Box
+              key={period.id}
+              bg="#151a21"
+              border="1px solid rgba(255,255,255,0.07)"
+              borderRadius="12px"
+              mb="6px"
+              overflow="hidden"
+            >
+              <Flex
+                as="button"
+                w="full"
+                alignItems="center"
+                gap={2}
+                px="14px"
+                py={3}
+                cursor="pointer"
+                bg="none"
+                border="none"
                 onClick={() => setOpenId(isOpen ? null : period.id)}
-                className="w-full flex items-center gap-2 px-3.5 py-3 cursor-pointer"
               >
-                <ChevronRight
-                  size={16}
-                  color="#5c6675"
-                  style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}
-                />
-                <span className="text-sm font-medium text-[#eaedf2] flex-1 text-left">{period.range}</span>
-                <span className={`flex items-center gap-1 ${st.bg} ${st.text} rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap`}>
-                  <span className={`text-[8px] ${st.dot}`}>●</span> {st.label}
-                </span>
-                <span className="text-xs text-[#5c6675]">· {period.count}</span>
-                <span className="text-sm font-semibold text-[#eaedf2] ml-auto">{formatCents(period.total_cents)}</span>
-              </button>
+                {/* Animated chevron */}
+                <Box
+                  display="inline-flex"
+                  transform={isOpen ? "rotate(90deg)" : "rotate(0deg)"}
+                  transition="transform 0.15s"
+                >
+                  <ChevronRight size={16} color="#5c6675" />
+                </Box>
+
+                <Text
+                  as="span" fontSize="14px" fontWeight="500" color="#eaedf2"
+                  flex={1} textAlign="left" minW={0} overflow="hidden"
+                  textOverflow="ellipsis" whiteSpace="nowrap"
+                >
+                  {period.range}
+                </Text>
+
+                {/* Status badge */}
+                <Flex
+                  as="span"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={1}
+                  bg={st.bg}
+                  color={st.text}
+                  borderRadius="9999px"
+                  px={2}
+                  py="2px"
+                  fontSize="11px"
+                  fontWeight="600"
+                  flexShrink={0}
+                >
+                  <Text as="span" fontSize="8px" color={st.dot}>●</Text>
+                  {st.label}
+                </Flex>
+
+                <Text as="span" fontSize="12px" color="#5c6675" flexShrink={0}>
+                  · {period.count}
+                </Text>
+                <Text
+                  as="span" fontSize="14px" fontWeight="600" color="#eaedf2"
+                  flexShrink={0} w="64px" textAlign="right"
+                >
+                  {formatCents(period.total_cents)}
+                </Text>
+              </Flex>
 
               {isOpen && (
-                <div className="px-3.5 pb-3">
+                <Box px="14px" pb={3}>
                   {period.rows.map((row, i) => (
-                    <div key={i} className="flex items-center gap-2.5 py-2 border-t border-white/5">
-                      <span className="text-xs text-[#5c6675] w-10">{row.date}</span>
-                      <span className="text-[13px] text-[#eaedf2] flex-1">{row.drink}</span>
-                      <span className="text-[13px] text-[#939dab]">{formatCents(row.price_cents)}</span>
-                    </div>
+                    <Flex
+                      key={i}
+                      alignItems="center"
+                      gap="10px"
+                      py={2}
+                      borderTop="1px solid rgba(255,255,255,0.05)"
+                    >
+                      <Text as="span" fontSize="12px" color="#5c6675" w="40px">{row.date}</Text>
+                      <Text as="span" fontSize="13px" color="#eaedf2" flex={1}>{row.drink}</Text>
+                      <Text as="span" fontSize="13px" color="#939dab">{formatCents(row.price_cents)}</Text>
+                    </Flex>
                   ))}
-                </div>
+                </Box>
               )}
-            </div>
+            </Box>
           );
         })}
-      </div>
+      </Box>
 
       {/* Logout */}
-      <div className="px-5 pb-8 pt-4">
-        <button
+      <Box px={5} pb={8} pt={4}>
+        <Box
+          as="button"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={2}
+          w="full"
+          h="52px"
+          borderRadius="12px"
+          bg="#e0535f"
+          color="white"
+          fontSize="16px"
+          fontWeight="700"
+          border="none"
+          cursor="pointer"
           onClick={logout}
-          className="w-full h-13 rounded-xl bg-[#e0535f] text-white text-base font-bold flex items-center justify-center gap-2 cursor-pointer"
         >
           <LogOut size={16} />
           Ausloggen
-        </button>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Flex>
   );
 }

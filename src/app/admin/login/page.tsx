@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error,   setError]   = useState("");
 
   async function handleGoogleLogin() {
     setLoading(true);
@@ -24,39 +25,84 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center bg-[#0b0e13] px-5">
-      <div className="w-full max-w-sm flex flex-col items-center">
-        <div className="w-16 h-16 rounded-2xl bg-[#6478a0]/20 border border-[#6478a0]/30 flex items-center justify-center text-3xl mb-5">
+    <Flex
+      minH="100dvh"
+      flexDir="column"
+      alignItems="center"
+      justifyContent="center"
+      bg="#0b0e13"
+      px={5}
+    >
+      <Flex flexDir="column" alignItems="center" w="full" maxW="sm">
+
+        {/* Icon */}
+        <Flex
+          w="64px" h="64px"
+          borderRadius="16px"
+          bg="rgba(100,120,160,0.2)"
+          border="1px solid rgba(100,120,160,0.3)"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="30px"
+          mb={5}
+        >
           🛡️
-        </div>
+        </Flex>
 
-        <h1 className="text-[24px] font-extrabold tracking-tight text-[#eaedf2] mb-1.5">
+        <Text fontSize="24px" fontWeight="800" letterSpacing="-0.5px" color="#eaedf2" mb="6px">
           Admin-Bereich
-        </h1>
-        <p className="text-sm text-[#939dab] mb-10">
+        </Text>
+        <Text fontSize="14px" color="#939dab" mb={10}>
           Kabinen-Bar · TSV Bobingen
-        </p>
+        </Text>
 
+        {/* Error */}
         {error && (
-          <div className="w-full mb-4 px-4 py-3 rounded-xl bg-[#e0535f]/10 border border-[#e0535f]/30 text-[#e0535f] text-sm text-center">
+          <Box
+            w="full"
+            mb={4}
+            px={4}
+            py={3}
+            borderRadius="12px"
+            bg="rgba(224,83,95,0.1)"
+            border="1px solid rgba(224,83,95,0.3)"
+            color="#e0535f"
+            fontSize="14px"
+            textAlign="center"
+          >
             {error}
-          </div>
+          </Box>
         )}
 
-        <button
+        {/* Google button */}
+        <Box
+          as="button"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={3}
+          w="full"
+          h="52px"
+          borderRadius="12px"
+          bg="white"
+          color="#1a1a1a"
+          fontSize="15px"
+          fontWeight="600"
+          border="none"
+          cursor="pointer"
+          opacity={loading ? 0.6 : 1}
+          transition="opacity 0.15s"
           onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full h-13 flex items-center justify-center gap-3 bg-white text-[#1a1a1a] font-semibold text-[15px] rounded-xl cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-60"
         >
           <GoogleIcon />
           {loading ? "Weiterleitung…" : "Mit Google anmelden"}
-        </button>
+        </Box>
 
-        <p className="mt-4 text-xs text-[#5c6675] text-center">
+        <Text fontSize="12px" color="#5c6675" textAlign="center" mt={4}>
           Nur Admins haben Zugang zu diesem Bereich.
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Flex>
+    </Flex>
   );
 }
 

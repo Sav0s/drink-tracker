@@ -1,4 +1,8 @@
-// Chakra UI removed — using Tailwind CSS v4 instead.
+"use client";
+
+import { ChakraProvider } from "@chakra-ui/react";
+import { system } from "@/lib/theme";
+
 export function Provider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <ChakraProvider value={system}>{children}</ChakraProvider>;
 }
