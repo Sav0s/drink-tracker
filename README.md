@@ -15,10 +15,9 @@ Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen
 
 | Route | Screen | Beschreibung |
 |---|---|---|
-| `/login` | Player Login | Google OAuth → Weiterleitung zu `/home` |
+| `/login` | Login | Google OAuth → Spieler zu `/home`, Admins direkt zu `/admin/dashboard` |
 | `/home` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
 | `/profil` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
-| `/admin/login` | Admin Login | Google OAuth (Steel-Theme) |
 | `/admin/dashboard` | Admin Dashboard | Getränke CRUD + Abrechnung verwalten |
 
 ## Setup
