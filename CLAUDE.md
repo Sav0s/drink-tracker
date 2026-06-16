@@ -68,8 +68,8 @@ prisma/
 - Alle 5 Screens implementiert — komplett mit Chakra UI style props (kein Tailwind, keine `style={}`-Objekte)
 - **Auth läuft:** Supabase Google OAuth für Spieler und Admin. Admin-Redirect via `useEffect` + `/api/me`.
 - **Prisma Schema angelegt + Migration angewandt** (`20260614144754_init`). Admin-User "Fabian Hauser" in DB (`is_admin = true`).
-- Screens zeigen noch **Mock-Daten** — Prisma-Backend noch nicht an UI angebunden
-- `src/proxy.ts` existiert aber ist **nicht aktiv** — muss zu `src/middleware.ts` umbenannt werden für Route Guards
+- **Backend angebunden:** home/profil/admin-dashboard nutzen jetzt echte Prisma-Queries über API-Routes (`/api/home`, `/api/bookings`, `/api/profil`, `/api/admin/*`) statt Mock-Daten. Alte Mock-Daten liegen als Fixtures in `prisma/fixtures/`.
+- `src/middleware.ts` aktiv (Route Guards laufen)
 - Noch kein Billing Modal (erscheint wenn Abrechnungsperiode endet)
 - TSV Bobingen Logo noch nicht eingebunden (liegt in Design-Assets)
 
