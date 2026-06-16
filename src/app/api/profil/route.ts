@@ -34,10 +34,10 @@ export async function GET() {
 
     const status =
       period.status === PERIOD_STATUS.ACTIVE
-        ? PROFIL_STATUS.AKTIV
+        ? PROFIL_STATUS.ACTIVE
         : paidByPeriod.get(period.id)
-          ? PROFIL_STATUS.BEZAHLT
-          : PROFIL_STATUS.AUSSTEHEND;
+          ? PROFIL_STATUS.PAID
+          : PROFIL_STATUS.PENDING;
 
     return {
       id: period.id,

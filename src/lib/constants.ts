@@ -10,20 +10,17 @@ export const PERIOD_STATUS = {
 } as const;
 export type PeriodStatus = (typeof PERIOD_STATUS)[keyof typeof PERIOD_STATUS];
 
-/** Display status used on the player-facing "Mein Konto" (profil) screen. */
+/**
+ * Display status used on the player-facing "Mein Konto" (profil) screen.
+ * Combines period status with payment status; German UI labels live in the
+ * component that renders them, not here.
+ */
 export const PROFIL_STATUS = {
-  AKTIV: "aktiv",
-  AUSSTEHEND: "ausstehend",
-  BEZAHLT: "bezahlt",
+  ACTIVE: "active",
+  PENDING: "pending",
+  PAID: "paid",
 } as const;
 export type ProfilStatus = (typeof PROFIL_STATUS)[keyof typeof PROFIL_STATUS];
-
-/** Display status used on the admin billing-period picker. */
-export const ADMIN_PERIOD_STATUS = {
-  AKTIV: "aktiv",
-  ABGESCHLOSSEN: "abgeschlossen",
-} as const;
-export type AdminPeriodStatus = (typeof ADMIN_PERIOD_STATUS)[keyof typeof ADMIN_PERIOD_STATUS];
 
 /** Error messages returned by API routes (kept in English per repo-language convention). */
 export const API_ERROR = {

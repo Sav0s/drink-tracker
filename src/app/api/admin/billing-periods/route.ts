@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatPeriodRange } from "@/lib/period";
-import { API_ERROR, PERIOD_STATUS, ADMIN_PERIOD_STATUS } from "@/lib/constants";
+import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
 
 /** GET → all billing periods, newest first. */
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
     periods: periods.map((p) => ({
       id: p.id,
       range: formatPeriodRange(p.startDate, p.endDate),
-      status: p.status === PERIOD_STATUS.ACTIVE ? ADMIN_PERIOD_STATUS.AKTIV : ADMIN_PERIOD_STATUS.ABGESCHLOSSEN,
+      status: p.status,
     })),
   });
 }

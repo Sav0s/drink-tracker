@@ -6,7 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
-import { ROUTES, ADMIN_PERIOD_STATUS, type AdminPeriodStatus } from "@/lib/constants";
+import { ROUTES, PERIOD_STATUS, type PeriodStatus } from "@/lib/constants";
 
 interface DrinkRow {
   id: string;
@@ -27,7 +27,7 @@ interface MemberRow {
 interface PeriodRow {
   id: string;
   range: string;
-  status: AdminPeriodStatus;
+  status: PeriodStatus;
 }
 
 /* ─── Toggle ─── */
@@ -411,10 +411,10 @@ export default function AdminDashboardPage() {
                     py="2px"
                     fontSize="11px"
                     fontWeight="600"
-                    bg={periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
-                    color={periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "#0468b3" : "#6478a0"}
+                    bg={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
+                    color={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "#0468b3" : "#6478a0"}
                   >
-                    {periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "Aktiv" : "Abgeschlossen"}
+                    {periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "Aktiv" : "Abgeschlossen"}
                   </Text>
                   <ChevronDown size={16} color="#5a6473" />
                 </Flex>

@@ -24,9 +24,9 @@ interface Period {
 }
 
 const STATUS: Record<ProfilStatus, { bg: string; text: string; dot: string; label: string }> = {
-  [PROFIL_STATUS.AKTIV]:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
-  [PROFIL_STATUS.AUSSTEHEND]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
-  [PROFIL_STATUS.BEZAHLT]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
+  [PROFIL_STATUS.ACTIVE]:  { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
+  [PROFIL_STATUS.PENDING]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
+  [PROFIL_STATUS.PAID]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
 };
 
 export default function ProfilPage() {
@@ -54,8 +54,8 @@ export default function ProfilPage() {
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod  = periods.find((p) => p.status === PROFIL_STATUS.AKTIV);
-  const pendingPeriods = periods.filter((p) => p.status === PROFIL_STATUS.AUSSTEHEND);
+  const activePeriod  = periods.find((p) => p.status === PROFIL_STATUS.ACTIVE);
+  const pendingPeriods = periods.filter((p) => p.status === PROFIL_STATUS.PENDING);
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
