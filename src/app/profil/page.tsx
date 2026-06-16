@@ -22,42 +22,6 @@ interface Period {
   rows: PeriodRow[];
 }
 
-const MOCK_PERIODS: Period[] = [
-  {
-    id: "1",
-    range: "01.06. – 01.07.2026",
-    status: "aktiv",
-    count: 18,
-    total_cents: 1850,
-    rows: [
-      { date: "12.06.", drink: "Bier 0,33l",   price_cents: 150 },
-      { date: "11.06.", drink: "Cola",          price_cents: 100 },
-      { date: "10.06.", drink: "Wasser",        price_cents: 50  },
-    ],
-  },
-  {
-    id: "2",
-    range: "01.05. – 01.06.2026",
-    status: "ausstehend",
-    count: 22,
-    total_cents: 2400,
-    rows: [
-      { date: "31.05.", drink: "Apfelschorle", price_cents: 80  },
-      { date: "28.05.", drink: "Bier 0,33l",   price_cents: 150 },
-    ],
-  },
-  {
-    id: "3",
-    range: "01.04. – 01.05.2026",
-    status: "bezahlt",
-    count: 15,
-    total_cents: 1650,
-    rows: [
-      { date: "30.04.", drink: "Cola",          price_cents: 100 },
-    ],
-  },
-];
-
 const STATUS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
   aktiv:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
   ausstehend: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
@@ -68,6 +32,7 @@ export default function ProfilPage() {
   const router = useRouter();
   const [player, setPlayer] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [periods, setPeriods] = useState<Period[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -80,11 +45,16 @@ export default function ProfilPage() {
         "Spieler";
       setPlayer(name);
     });
+
+    fetch("/api/profil")
+      .then((r) => r.json())
+      .then((data) => setPeriods(data.periods ?? []))
+      .catch(() => {});
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod  = MOCK_PERIODS.find((p) => p.status === "aktiv");
-  const pendingPeriods = MOCK_PERIODS.filter((p) => p.status === "ausstehend");
+  const activePeriod  = periods.find((p) => p.status === "aktiv");
+  const pendingPeriods = periods.filter((p) => p.status === "ausstehend");
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
@@ -173,7 +143,7 @@ export default function ProfilPage() {
         </Text>
 
         {/* Period rows */}
-        {MOCK_PERIODS.map((period) => {
+        {periods.map((period) => {
           const st     = STATUS[period.status];
           const isOpen = openId === period.id;
           return (

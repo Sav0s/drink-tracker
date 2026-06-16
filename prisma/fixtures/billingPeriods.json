@@ -1,0 +1,23 @@
+[
+  {
+    "id": "period-1",
+    "startDate": "2026-06-01",
+    "endDate": null,
+    "status": "active",
+    "paymentInstructions": null
+  },
+  {
+    "id": "period-2",
+    "startDate": "2026-05-01",
+    "endDate": "2026-06-01",
+    "status": "closed",
+    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: TSV Bobingen Kasse"
+  },
+  {
+    "id": "period-3",
+    "startDate": "2026-04-01",
+    "endDate": "2026-05-01",
+    "status": "closed",
+    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: TSV Bobingen Kasse"
+  }
+]

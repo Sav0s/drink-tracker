@@ -1,0 +1,11 @@
+[
+  { "playerId": "player-1", "drinkId": "drink-4", "periodId": "period-1", "quantity": 8 },
+  { "playerId": "player-1", "drinkId": "drink-3", "periodId": "period-1", "quantity": 5 },
+  { "playerId": "player-1", "drinkId": "drink-1", "periodId": "period-1", "quantity": 5 },
+  { "playerId": "player-2", "drinkId": "drink-2", "periodId": "period-1", "quantity": 12 },
+  { "playerId": "player-3", "drinkId": "drink-3", "periodId": "period-1", "quantity": 7 },
+
+  { "playerId": "player-fabian", "drinkId": "drink-4", "periodId": "period-2", "quantity": 8 },
+  { "playerId": "player-fabian", "drinkId": "drink-2", "periodId": "period-2", "quantity": 12 },
+  { "playerId": "player-fabian", "drinkId": "drink-3", "periodId": "period-3", "quantity": 1 }
+]

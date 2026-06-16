@@ -14,14 +14,6 @@ interface DrinkState {
   count: number;
 }
 
-const MOCK_DRINKS: DrinkState[] = [
-  { id: "1", name: "Wasser",      price_cents: 50,  count: 2 },
-  { id: "2", name: "Apfelschorle", price_cents: 80,  count: 5 },
-  { id: "3", name: "Cola",        price_cents: 100, count: 3 },
-  { id: "4", name: "Bier 0,33l",  price_cents: 150, count: 8 },
-  { id: "5", name: "Iso-Drink",   price_cents: 120, count: 0 },
-];
-
 interface Toast   { drink: DrinkState }
 interface EditSheet { drink: DrinkState | null }
 
@@ -63,7 +55,7 @@ function Strichliste({ count }: { count: number }) {
 export default function HauptseiteePage() {
   const router = useRouter();
   const [player,    setPlayer]    = useState<string>("");
-  const [drinks,    setDrinks]    = useState<DrinkState[]>(MOCK_DRINKS);
+  const [drinks,    setDrinks]    = useState<DrinkState[]>([]);
   const [toast,     setToast]     = useState<Toast | null>(null);
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
@@ -79,6 +71,11 @@ export default function HauptseiteePage() {
         "Spieler";
       setPlayer(name);
     });
+
+    fetch("/api/home")
+      .then((r) => r.json())
+      .then((data) => setDrinks(data.drinks ?? []))
+      .catch(() => {});
   }, [router]);
 
   const saldo = drinks.reduce((sum, d) => sum + d.count * d.price_cents, 0);
@@ -88,6 +85,11 @@ export default function HauptseiteePage() {
       setDrinks((prev) =>
         prev.map((d) => (d.id === drink.id ? { ...d, count: d.count + 1 } : d))
       );
+      fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drinkId: drink.id }),
+      }).catch(() => {});
       if (toastTimer) clearTimeout(toastTimer);
       setToast({ drink });
       const t = setTimeout(() => setToast(null), 3500);
@@ -98,13 +100,22 @@ export default function HauptseiteePage() {
 
   function undoBooking() {
     if (!toast) return;
+    const drinkId = toast.drink.id;
     setDrinks((prev) =>
       prev.map((d) =>
-        d.id === toast.drink.id ? { ...d, count: Math.max(0, d.count - 1) } : d
+        d.id === drinkId ? { ...d, count: Math.max(0, d.count - 1) } : d
       )
     );
+    fetch(`/api/bookings/last?drinkId=${drinkId}`, { method: "DELETE" }).catch(() => {});
     if (toastTimer) clearTimeout(toastTimer);
     setToast(null);
+  }
+
+  function removeBookingEntry(drinkId: string) {
+    setDrinks((prev) =>
+      prev.map((d) => (d.id === drinkId ? { ...d, count: Math.max(0, d.count - 1) } : d))
+    );
+    fetch(`/api/bookings/last?drinkId=${drinkId}`, { method: "DELETE" }).catch(() => {});
   }
 
   const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -312,13 +323,7 @@ export default function HauptseiteePage() {
                     fontSize="13px"
                     fontWeight="500"
                     onClick={() => {
-                      setDrinks((prev) =>
-                        prev.map((d) =>
-                          d.id === editSheet.drink!.id
-                            ? { ...d, count: Math.max(0, d.count - 1) }
-                            : d
-                        )
-                      );
+                      removeBookingEntry(editSheet.drink!.id);
                       setEditSheet((prev) => ({
                         drink: prev.drink
                           ? { ...prev.drink, count: Math.max(0, prev.drink.count - 1) }
