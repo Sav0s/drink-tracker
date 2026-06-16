@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
 import { formatPeriodRange, formatDateShort } from "@/lib/period";
-import { API_ERROR, PERIOD_STATUS, PROFIL_STATUS } from "@/lib/constants";
+import { API_ERROR, PERIOD_STATUS, PROFILE_STATUS } from "@/lib/constants";
 
 /** GET → billing periods relevant to the current player, with their bookings + payment status. */
 export async function GET() {
@@ -34,10 +34,10 @@ export async function GET() {
 
     const status =
       period.status === PERIOD_STATUS.ACTIVE
-        ? PROFIL_STATUS.ACTIVE
+        ? PROFILE_STATUS.ACTIVE
         : paidByPeriod.get(period.id)
-          ? PROFIL_STATUS.PAID
-          : PROFIL_STATUS.PENDING;
+          ? PROFILE_STATUS.PAID
+          : PROFILE_STATUS.PENDING;
 
     return {
       id: period.id,

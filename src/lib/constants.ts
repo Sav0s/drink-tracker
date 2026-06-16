@@ -11,16 +11,16 @@ export const PERIOD_STATUS = {
 export type PeriodStatus = (typeof PERIOD_STATUS)[keyof typeof PERIOD_STATUS];
 
 /**
- * Display status used on the player-facing "Mein Konto" (profil) screen.
+ * Display status used on the player-facing "Mein Konto" (profile) screen.
  * Combines period status with payment status; German UI labels live in the
  * component that renders them, not here.
  */
-export const PROFIL_STATUS = {
+export const PROFILE_STATUS = {
   ACTIVE: "active",
   PENDING: "pending",
   PAID: "paid",
 } as const;
-export type ProfilStatus = (typeof PROFIL_STATUS)[keyof typeof PROFIL_STATUS];
+export type ProfileStatus = (typeof PROFILE_STATUS)[keyof typeof PROFILE_STATUS];
 
 /** Error messages returned by API routes (kept in English per repo-language convention). */
 export const API_ERROR = {
@@ -38,13 +38,13 @@ export const API_ERROR = {
 export const ROUTES = {
   LOGIN: "/login",
   HOME: "/home",
-  PROFIL: "/profil",
+  PROFILE: "/profile",
   ADMIN_LOGIN: "/admin/login",
   ADMIN_DASHBOARD: "/admin/dashboard",
 } as const;
 
 /** Route prefixes guarded by src/middleware.ts — unauthenticated users are redirected to ROUTES.LOGIN. */
-export const PROTECTED_ROUTES = [ROUTES.HOME, ROUTES.PROFIL, "/admin"] as const;
+export const PROTECTED_ROUTES = [ROUTES.HOME, ROUTES.PROFILE, "/admin"] as const;
 
 /** Fallback player name shown when no name can be derived from the auth profile. */
 export const DEFAULT_PLAYER_NAME = "Spieler";

@@ -140,7 +140,7 @@ export default function HauptseiteePage() {
           border="none"
           cursor="pointer"
           p={0}
-          onClick={() => router.push(ROUTES.PROFIL)}
+          onClick={() => router.push(ROUTES.PROFILE)}
         >
           <Flex
             w="36px" h="36px" borderRadius="9999px" bg="#0468b3"

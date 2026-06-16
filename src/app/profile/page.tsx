@@ -6,7 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
-import { ROUTES, PROFIL_STATUS, DEFAULT_PLAYER_NAME, type ProfilStatus } from "@/lib/constants";
+import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
 
 interface PeriodRow {
   date: string;
@@ -17,19 +17,19 @@ interface PeriodRow {
 interface Period {
   id: string;
   range: string;
-  status: ProfilStatus;
+  status: ProfileStatus;
   count: number;
   total_cents: number;
   rows: PeriodRow[];
 }
 
-const STATUS: Record<ProfilStatus, { bg: string; text: string; dot: string; label: string }> = {
-  [PROFIL_STATUS.ACTIVE]:  { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
-  [PROFIL_STATUS.PENDING]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
-  [PROFIL_STATUS.PAID]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
+const STATUS: Record<ProfileStatus, { bg: string; text: string; dot: string; label: string }> = {
+  [PROFILE_STATUS.ACTIVE]:  { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
+  [PROFILE_STATUS.PENDING]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
+  [PROFILE_STATUS.PAID]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
 };
 
-export default function ProfilPage() {
+export default function ProfilePage() {
   const router = useRouter();
   const [player, setPlayer] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -47,15 +47,15 @@ export default function ProfilPage() {
       setPlayer(name);
     });
 
-    fetch("/api/profil")
+    fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => setPeriods(data.periods ?? []))
       .catch(() => {});
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod  = periods.find((p) => p.status === PROFIL_STATUS.ACTIVE);
-  const pendingPeriods = periods.filter((p) => p.status === PROFIL_STATUS.PENDING);
+  const activePeriod  = periods.find((p) => p.status === PROFILE_STATUS.ACTIVE);
+  const pendingPeriods = periods.filter((p) => p.status === PROFILE_STATUS.PENDING);
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
