@@ -41,7 +41,7 @@ src/
 │       ├── client.ts      # Browser-Client (createBrowserClient)
 │       └── server.ts      # Server-Client (createServerClient + cookies)
 ├── types/index.ts         # DB-Typen + formatCents()
-└── proxy.ts               # Route Guards (INAKTIV — umbenennen zu middleware.ts)
+└── proxy.ts               # Route Guards (aktiv — Next.js 16 Proxy-Convention, ersetzt middleware.ts)
 
 prisma/
 ├── schema.prisma          # DB-Schema (Player, Drink, BillingPeriod, Booking, Payment)
@@ -69,7 +69,7 @@ prisma/
 - **Auth läuft:** Supabase Google OAuth für Spieler und Admin. Admin-Redirect via `useEffect` + `/api/me`.
 - **Prisma Schema angelegt + Migration angewandt** (`20260614144754_init`). Admin-User "Fabian Hauser" in DB (`is_admin = true`).
 - **Backend angebunden:** home/profil/admin-dashboard nutzen jetzt echte Prisma-Queries über API-Routes (`/api/home`, `/api/bookings`, `/api/profil`, `/api/admin/*`) statt Mock-Daten. Alte Mock-Daten liegen als Fixtures in `prisma/fixtures/`.
-- `src/middleware.ts` aktiv (Route Guards laufen)
+- `src/proxy.ts` aktiv (Route Guards laufen; Next.js 16 hat `middleware.ts` zu `proxy.ts` umbenannt)
 - Noch kein Billing Modal (erscheint wenn Abrechnungsperiode endet)
 - TSV Bobingen Logo noch nicht eingebunden (liegt in Design-Assets)
 

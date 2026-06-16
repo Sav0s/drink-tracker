@@ -34,7 +34,7 @@ export const API_ERROR = {
   PAYMENT_FIELDS_REQUIRED: "playerId, periodId, paid required",
 } as const;
 
-/** App routes, used in router.push() calls and middleware. */
+/** App routes, used in router.push() calls and the proxy (route guards). */
 export const ROUTES = {
   LOGIN: "/login",
   HOME: "/home",
@@ -43,7 +43,7 @@ export const ROUTES = {
   ADMIN_DASHBOARD: "/admin/dashboard",
 } as const;
 
-/** Route prefixes guarded by src/middleware.ts — unauthenticated users are redirected to ROUTES.LOGIN. */
+/** Route prefixes guarded by src/proxy.ts — unauthenticated users are redirected to ROUTES.LOGIN. */
 export const PROTECTED_ROUTES = [ROUTES.HOME, ROUTES.PROFILE, "/admin"] as const;
 
 /** Fallback player name shown when no name can be derived from the auth profile. */
