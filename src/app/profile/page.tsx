@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
+import { LoadingState } from "@/components/LoadingState";
 
 interface PeriodRow {
   date: string;
@@ -34,6 +35,7 @@ export default function ProfilePage() {
   const [player, setPlayer] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<Period[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -50,7 +52,8 @@ export default function ProfilePage() {
     fetch("/api/profile")
       .then((r) => r.json())
       .then((data) => setPeriods(data.periods ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -102,6 +105,10 @@ export default function ProfilePage() {
           </Box>
         </Flex>
 
+        {loading ? (
+          <LoadingState minH="280px" />
+        ) : (
+          <>
         {/* Balance card */}
         <Box
           p={5}
@@ -235,6 +242,8 @@ export default function ProfilePage() {
             </Box>
           );
         })}
+          </>
+        )}
       </Box>
 
       {/* Logout */}

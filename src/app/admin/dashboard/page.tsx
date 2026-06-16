@@ -7,6 +7,7 @@ import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "luci
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PERIOD_STATUS, type PeriodStatus } from "@/lib/constants";
+import { LoadingState } from "@/components/LoadingState";
 
 interface DrinkRow {
   id: string;
@@ -103,6 +104,9 @@ export default function AdminDashboardPage() {
   const [showNew,    setShowNew]    = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const [adminName,  setAdminName]  = useState("A");
+  const [drinksLoaded,  setDrinksLoaded]  = useState(false);
+  const [periodsLoaded, setPeriodsLoaded] = useState(false);
+  const [membersLoading, setMembersLoading] = useState(true);
 
   // Date inputs
   const [startDate, setStartDate] = useState("");
@@ -128,24 +132,29 @@ export default function AdminDashboardPage() {
     fetch("/api/admin/drinks")
       .then((r) => r.json())
       .then((data) => setDrinks(data.drinks ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setDrinksLoaded(true));
   }
 
   function reloadPeriods() {
     fetch("/api/admin/billing-periods")
       .then((r) => r.json())
       .then((data) => setPeriods(data.periods ?? []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPeriodsLoaded(true));
   }
 
   useEffect(() => {
+    if (!periodsLoaded) return;
     const period = periods[selPeriod];
-    if (!period) { setMembers([]); return; }
+    if (!period) { setMembers([]); setMembersLoading(false); return; }
+    setMembersLoading(true);
     fetch(`/api/admin/billing-periods/${period.id}/members`)
       .then((r) => r.json())
       .then((data) => setMembers(data.members ?? []))
-      .catch(() => {});
-  }, [periods, selPeriod]);
+      .catch(() => {})
+      .finally(() => setMembersLoading(false));
+  }, [periods, selPeriod, periodsLoaded]);
 
   function toggleDrink(id: string, active: boolean) {
     setDrinks((prev) => prev.map((d) => (d.id === id ? { ...d, active } : d)));
@@ -297,6 +306,9 @@ export default function AdminDashboardPage() {
               {drinks.length} Getränke · {drinks.filter((d) => d.active).length} aktiv · {drinks.filter((d) => !d.active).length} inaktiv
             </Text>
 
+            {!drinksLoaded ? (
+              <LoadingState color="#6478a0" />
+            ) : (
             <Box bg="#141921" borderRadius="12px" overflow="hidden" border="1px solid rgba(255,255,255,0.07)">
               {/* Header */}
               <Flex px={4} py="10px" borderBottom="1px solid rgba(255,255,255,0.07)">
@@ -378,12 +390,17 @@ export default function AdminDashboardPage() {
                 </Box>
               </Flex>
             </Box>
+            )}
           </Box>
         )}
 
         {/* ─── Tab B: Abrechnung ─── */}
         {tab === "billing" && (
           <Box>
+            {!periodsLoaded ? (
+              <LoadingState color="#6478a0" />
+            ) : (
+            <>
             {/* Toolbar */}
             <Flex alignItems="center" gap={3} mb={4} flexWrap="wrap">
 
@@ -595,7 +612,10 @@ export default function AdminDashboardPage() {
             </Flex>
 
             {/* Member list */}
-            {members.map((m) => {
+            {membersLoading ? (
+              <LoadingState color="#6478a0" minH="200px" />
+            ) : (
+            members.map((m) => {
               const initials = m.name.split(" ").map((w) => w[0]).join("").slice(0, 2);
               const isOpen   = openMember === m.id;
               return (
@@ -720,7 +740,10 @@ export default function AdminDashboardPage() {
                   )}
                 </Box>
               );
-            })}
+            })
+            )}
+            </>
+            )}
           </Box>
         )}
       </Box>
