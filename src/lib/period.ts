@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { PERIOD_STATUS } from "@/lib/constants";
 
 /** Returns the currently active billing period, or null if none is open. */
 export function getActivePeriod() {
-  return prisma.billingPeriod.findFirst({ where: { status: "active" } });
+  return prisma.billingPeriod.findFirst({ where: { status: PERIOD_STATUS.ACTIVE } });
 }
 
 /** Formats a date range like the UI expects: "01.06. – 01.07.2026" / "01.06. – heute". */

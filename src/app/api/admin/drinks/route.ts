@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCurrentPlayer } from "@/lib/auth";
-
-async function requireAdmin() {
-  const player = await getCurrentPlayer();
-  if (!player) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  if (!player.isAdmin) return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  return { player };
-}
+import { requireAdmin } from "@/lib/auth";
+import { API_ERROR } from "@/lib/constants";
 
 /** GET → all drinks (active + inactive). */
 export async function GET() {
@@ -27,7 +21,7 @@ export async function POST(request: Request) {
 
   const { name, price_cents, active } = await request.json();
   if (!name || typeof price_cents !== "number") {
-    return NextResponse.json({ error: "name and price_cents required" }, { status: 400 });
+    return NextResponse.json({ error: API_ERROR.NAME_AND_PRICE_REQUIRED }, { status: 400 });
   }
 
   const drink = await prisma.drink.create({

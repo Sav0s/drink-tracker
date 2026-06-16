@@ -6,6 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES, ADMIN_PERIOD_STATUS, type AdminPeriodStatus } from "@/lib/constants";
 
 interface DrinkRow {
   id: string;
@@ -26,7 +27,7 @@ interface MemberRow {
 interface PeriodRow {
   id: string;
   range: string;
-  status: "aktiv" | "abgeschlossen";
+  status: AdminPeriodStatus;
 }
 
 /* ─── Toggle ─── */
@@ -112,12 +113,12 @@ export default function AdminDashboardPage() {
     fetch("/api/me")
       .then((r) => r.json())
       .then((player) => {
-        if (!player.isAdmin) { router.push("/home"); return; }
+        if (!player.isAdmin) { router.push(ROUTES.HOME); return; }
         setAdminName(
           player.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
         );
       })
-      .catch(() => router.push("/admin/login"));
+      .catch(() => router.push(ROUTES.ADMIN_LOGIN));
 
     reloadDrinks();
     reloadPeriods();
@@ -202,7 +203,7 @@ export default function AdminDashboardPage() {
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push(ROUTES.ADMIN_LOGIN);
   }
 
   const paid     = members.filter((m) =>  m.paid).length;
@@ -410,10 +411,10 @@ export default function AdminDashboardPage() {
                     py="2px"
                     fontSize="11px"
                     fontWeight="600"
-                    bg={periods[selPeriod]?.status === "aktiv" ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
-                    color={periods[selPeriod]?.status === "aktiv" ? "#0468b3" : "#6478a0"}
+                    bg={periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
+                    color={periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "#0468b3" : "#6478a0"}
                   >
-                    {periods[selPeriod]?.status === "aktiv" ? "Aktiv" : "Abgeschlossen"}
+                    {periods[selPeriod]?.status === ADMIN_PERIOD_STATUS.AKTIV ? "Aktiv" : "Abgeschlossen"}
                   </Text>
                   <ChevronDown size={16} color="#5a6473" />
                 </Flex>

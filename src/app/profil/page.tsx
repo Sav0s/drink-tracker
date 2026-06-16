@@ -6,6 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES, PROFIL_STATUS, DEFAULT_PLAYER_NAME, type ProfilStatus } from "@/lib/constants";
 
 interface PeriodRow {
   date: string;
@@ -16,16 +17,16 @@ interface PeriodRow {
 interface Period {
   id: string;
   range: string;
-  status: "aktiv" | "ausstehend" | "bezahlt";
+  status: ProfilStatus;
   count: number;
   total_cents: number;
   rows: PeriodRow[];
 }
 
-const STATUS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-  aktiv:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
-  ausstehend: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
-  bezahlt:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
+const STATUS: Record<ProfilStatus, { bg: string; text: string; dot: string; label: string }> = {
+  [PROFIL_STATUS.AKTIV]:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
+  [PROFIL_STATUS.AUSSTEHEND]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
+  [PROFIL_STATUS.BEZAHLT]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
 };
 
 export default function ProfilPage() {
@@ -37,12 +38,12 @@ export default function ProfilPage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push("/login"); return; }
+      if (!user) { router.push(ROUTES.LOGIN); return; }
       const name =
         user.user_metadata?.full_name ||
         user.user_metadata?.name      ||
         user.email?.split("@")[0]     ||
-        "Spieler";
+        DEFAULT_PLAYER_NAME;
       setPlayer(name);
     });
 
@@ -53,14 +54,14 @@ export default function ProfilPage() {
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod  = periods.find((p) => p.status === "aktiv");
-  const pendingPeriods = periods.filter((p) => p.status === "ausstehend");
+  const activePeriod  = periods.find((p) => p.status === PROFIL_STATUS.AKTIV);
+  const pendingPeriods = periods.filter((p) => p.status === PROFIL_STATUS.AUSSTEHEND);
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push(ROUTES.LOGIN);
   }
 
   return (
@@ -75,7 +76,7 @@ export default function ProfilPage() {
         py="14px"
         borderBottom="1px solid rgba(255,255,255,0.07)"
       >
-        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push("/home")}>
+        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push(ROUTES.HOME)}>
           <ChevronLeft size={20} color="#eaedf2" />
         </Box>
         <Text fontSize="17px" fontWeight="700" color="#eaedf2">Mein Konto</Text>

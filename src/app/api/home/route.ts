@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
 import { getActivePeriod } from "@/lib/period";
+import { API_ERROR } from "@/lib/constants";
 
 /** GET → active drinks with the current player's booking count in the active period. */
 export async function GET() {
   const player = await getCurrentPlayer();
-  if (!player) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!player) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
 
   const drinks = await prisma.drink.findMany({
     where: { active: true },

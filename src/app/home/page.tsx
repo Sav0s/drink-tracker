@@ -6,6 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check } from "lucide-react";
 import { formatCents } from "@/types";
+import { ROUTES, DEFAULT_PLAYER_NAME } from "@/lib/constants";
 
 interface DrinkState {
   id: string;
@@ -63,12 +64,12 @@ export default function HauptseiteePage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push("/login"); return; }
+      if (!user) { router.push(ROUTES.LOGIN); return; }
       const name =
         user.user_metadata?.full_name ||
         user.user_metadata?.name     ||
         user.email?.split("@")[0]    ||
-        "Spieler";
+        DEFAULT_PLAYER_NAME;
       setPlayer(name);
     });
 
@@ -139,7 +140,7 @@ export default function HauptseiteePage() {
           border="none"
           cursor="pointer"
           p={0}
-          onClick={() => router.push("/profil")}
+          onClick={() => router.push(ROUTES.PROFIL)}
         >
           <Flex
             w="36px" h="36px" borderRadius="9999px" bg="#0468b3"

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
 import { formatPeriodRange, formatDateShort } from "@/lib/period";
+import { API_ERROR, PERIOD_STATUS, PROFIL_STATUS } from "@/lib/constants";
 
 /** GET → billing periods relevant to the current player, with their bookings + payment status. */
 export async function GET() {
   const player = await getCurrentPlayer();
-  if (!player) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!player) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
 
   const bookings = await prisma.booking.findMany({
     where: { playerId: player.id },
@@ -32,7 +33,11 @@ export async function GET() {
     const total_cents = periodBookings.reduce((s, b) => s + b.drink.priceCents, 0);
 
     const status =
-      period.status === "active" ? "aktiv" : paidByPeriod.get(period.id) ? "bezahlt" : "ausstehend";
+      period.status === PERIOD_STATUS.ACTIVE
+        ? PROFIL_STATUS.AKTIV
+        : paidByPeriod.get(period.id)
+          ? PROFIL_STATUS.BEZAHLT
+          : PROFIL_STATUS.AUSSTEHEND;
 
     return {
       id: period.id,
