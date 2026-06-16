@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ROUTES, PROTECTED_ROUTES } from "@/lib/constants";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -30,16 +31,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect unauthenticated users to login
-  const protectedRoutes = ["/home", "/profil", "/admin"];
-  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+  const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
 
   if (!user && isProtected) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
   }
 
   // Redirect authenticated users away from login
-  if (user && pathname === "/login") {
-    return NextResponse.redirect(new URL("/home", request.url));
+  if (user && pathname === ROUTES.LOGIN) {
+    return NextResponse.redirect(new URL(ROUTES.HOME, request.url));
   }
 
   return supabaseResponse;

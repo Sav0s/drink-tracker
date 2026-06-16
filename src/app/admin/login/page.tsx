@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES } from "@/lib/constants";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function AdminLoginPage() {
     fetch("/api/me")
       .then((r) => r.json())
       .then((player) => {
-        if (player.isAdmin) router.push("/admin/dashboard");
+        if (player.isAdmin) router.push(ROUTES.ADMIN_DASHBOARD);
       })
       .catch(() => {/* not logged in — stay on login page */});
   }, [router]);
@@ -27,7 +28,7 @@ export default function AdminLoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/admin/dashboard`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${ROUTES.ADMIN_DASHBOARD}`,
       },
     });
     if (error) {

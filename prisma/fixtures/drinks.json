@@ -1,0 +1,7 @@
+[
+  { "id": "drink-1", "name": "Wasser", "priceCents": 50, "active": true },
+  { "id": "drink-2", "name": "Apfelschorle", "priceCents": 80, "active": true },
+  { "id": "drink-3", "name": "Cola", "priceCents": 100, "active": true },
+  { "id": "drink-4", "name": "Bier 0,33l", "priceCents": 150, "active": true },
+  { "id": "drink-5", "name": "Iso-Drink", "priceCents": 120, "active": false }
+]

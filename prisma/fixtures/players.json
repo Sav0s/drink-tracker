@@ -1,0 +1,6 @@
+[
+  { "id": "player-fabian", "name": "Fabian Hauser", "isAdmin": true },
+  { "id": "player-1", "name": "Andreas Müller", "isAdmin": false },
+  { "id": "player-2", "name": "Benedikt Schmid", "isAdmin": false },
+  { "id": "player-3", "name": "Christian Wagner", "isAdmin": false }
+]

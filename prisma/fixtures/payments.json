@@ -1,0 +1,8 @@
+[
+  { "playerId": "player-1", "periodId": "period-1", "paid": false, "paidAt": null },
+  { "playerId": "player-2", "periodId": "period-1", "paid": true, "paidAt": "2026-06-10" },
+  { "playerId": "player-3", "periodId": "period-1", "paid": false, "paidAt": null },
+
+  { "playerId": "player-fabian", "periodId": "period-2", "paid": false, "paidAt": null },
+  { "playerId": "player-fabian", "periodId": "period-3", "paid": true, "paidAt": "2026-05-03" }
+]

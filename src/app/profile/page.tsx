@@ -6,6 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
 
 interface PeriodRow {
   date: string;
@@ -16,81 +17,51 @@ interface PeriodRow {
 interface Period {
   id: string;
   range: string;
-  status: "aktiv" | "ausstehend" | "bezahlt";
+  status: ProfileStatus;
   count: number;
   total_cents: number;
   rows: PeriodRow[];
 }
 
-const MOCK_PERIODS: Period[] = [
-  {
-    id: "1",
-    range: "01.06. – 01.07.2026",
-    status: "aktiv",
-    count: 18,
-    total_cents: 1850,
-    rows: [
-      { date: "12.06.", drink: "Bier 0,33l",   price_cents: 150 },
-      { date: "11.06.", drink: "Cola",          price_cents: 100 },
-      { date: "10.06.", drink: "Wasser",        price_cents: 50  },
-    ],
-  },
-  {
-    id: "2",
-    range: "01.05. – 01.06.2026",
-    status: "ausstehend",
-    count: 22,
-    total_cents: 2400,
-    rows: [
-      { date: "31.05.", drink: "Apfelschorle", price_cents: 80  },
-      { date: "28.05.", drink: "Bier 0,33l",   price_cents: 150 },
-    ],
-  },
-  {
-    id: "3",
-    range: "01.04. – 01.05.2026",
-    status: "bezahlt",
-    count: 15,
-    total_cents: 1650,
-    rows: [
-      { date: "30.04.", drink: "Cola",          price_cents: 100 },
-    ],
-  },
-];
-
-const STATUS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
-  aktiv:      { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
-  ausstehend: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
-  bezahlt:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
+const STATUS: Record<ProfileStatus, { bg: string; text: string; dot: string; label: string }> = {
+  [PROFILE_STATUS.ACTIVE]:  { bg: "rgba(4,104,179,0.16)",  text: "#0468b3", dot: "#0468b3", label: "Aktiv"      },
+  [PROFILE_STATUS.PENDING]: { bg: "rgba(214,162,58,0.15)", text: "#d6a23a", dot: "#d6a23a", label: "Ausstehend" },
+  [PROFILE_STATUS.PAID]:    { bg: "rgba(47,169,104,0.15)", text: "#2fa968", dot: "#2fa968", label: "Bezahlt"    },
 };
 
-export default function ProfilPage() {
+export default function ProfilePage() {
   const router = useRouter();
   const [player, setPlayer] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [periods, setPeriods] = useState<Period[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push("/login"); return; }
+      if (!user) { router.push(ROUTES.LOGIN); return; }
       const name =
         user.user_metadata?.full_name ||
         user.user_metadata?.name      ||
         user.email?.split("@")[0]     ||
-        "Spieler";
+        DEFAULT_PLAYER_NAME;
       setPlayer(name);
     });
+
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => setPeriods(data.periods ?? []))
+      .catch(() => {});
   }, [router]);
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-  const activePeriod  = MOCK_PERIODS.find((p) => p.status === "aktiv");
-  const pendingPeriods = MOCK_PERIODS.filter((p) => p.status === "ausstehend");
+  const activePeriod  = periods.find((p) => p.status === PROFILE_STATUS.ACTIVE);
+  const pendingPeriods = periods.filter((p) => p.status === PROFILE_STATUS.PENDING);
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push(ROUTES.LOGIN);
   }
 
   return (
@@ -105,7 +76,7 @@ export default function ProfilPage() {
         py="14px"
         borderBottom="1px solid rgba(255,255,255,0.07)"
       >
-        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push("/home")}>
+        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push(ROUTES.HOME)}>
           <ChevronLeft size={20} color="#eaedf2" />
         </Box>
         <Text fontSize="17px" fontWeight="700" color="#eaedf2">Mein Konto</Text>
@@ -173,7 +144,7 @@ export default function ProfilPage() {
         </Text>
 
         {/* Period rows */}
-        {MOCK_PERIODS.map((period) => {
+        {periods.map((period) => {
           const st     = STATUS[period.status];
           const isOpen = openId === period.id;
           return (

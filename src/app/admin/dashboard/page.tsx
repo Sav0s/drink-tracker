@@ -6,6 +6,7 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES, PERIOD_STATUS, type PeriodStatus } from "@/lib/constants";
 
 interface DrinkRow {
   id: string;
@@ -23,24 +24,11 @@ interface MemberRow {
   items: { drink: string; count: number; price_cents: number }[];
 }
 
-const MOCK_DRINKS: DrinkRow[] = [
-  { id: "1", name: "Wasser",       price_cents: 50,  active: true  },
-  { id: "2", name: "Apfelschorle", price_cents: 80,  active: true  },
-  { id: "3", name: "Cola",         price_cents: 100, active: true  },
-  { id: "4", name: "Bier 0,33l",   price_cents: 150, active: true  },
-  { id: "5", name: "Iso-Drink",    price_cents: 120, active: false },
-];
-
-const MOCK_MEMBERS: MemberRow[] = [
-  { id: "1", name: "Andreas Müller",    count: 18, total_cents: 1850, paid: false, items: [{ drink: "Bier 0,33l", count: 8, price_cents: 150 }, { drink: "Cola", count: 5, price_cents: 100 }, { drink: "Wasser", count: 5, price_cents: 50 }] },
-  { id: "2", name: "Benedikt Schmid",   count: 12, total_cents: 1200, paid: true,  items: [{ drink: "Apfelschorle", count: 12, price_cents: 80 }] },
-  { id: "3", name: "Christian Wagner",  count: 7,  total_cents: 710,  paid: false, items: [{ drink: "Cola", count: 7, price_cents: 100 }] },
-];
-
-const MOCK_PERIODS = [
-  { id: "1", range: "01.06. – 01.07.2026", status: "aktiv"         },
-  { id: "2", range: "01.05. – 01.06.2026", status: "abgeschlossen" },
-];
+interface PeriodRow {
+  id: string;
+  range: string;
+  status: PeriodStatus;
+}
 
 /* ─── Toggle ─── */
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -104,11 +92,12 @@ function FieldInput({
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [tab,        setTab]        = useState<"drinks" | "billing">("drinks");
-  const [drinks,     setDrinks]     = useState<DrinkRow[]>(MOCK_DRINKS);
+  const [drinks,     setDrinks]     = useState<DrinkRow[]>([]);
   const [newName,    setNewName]    = useState("");
   const [newPrice,   setNewPrice]   = useState("");
   const [newActive,  setNewActive]  = useState(true);
-  const [members,    setMembers]    = useState<MemberRow[]>(MOCK_MEMBERS);
+  const [members,    setMembers]    = useState<MemberRow[]>([]);
+  const [periods,    setPeriods]    = useState<PeriodRow[]>([]);
   const [selPeriod,  setSelPeriod]  = useState(0);
   const [openMember, setOpenMember] = useState<string | null>(null);
   const [showNew,    setShowNew]    = useState(false);
@@ -124,36 +113,97 @@ export default function AdminDashboardPage() {
     fetch("/api/me")
       .then((r) => r.json())
       .then((player) => {
-        if (!player.isAdmin) { router.push("/home"); return; }
+        if (!player.isAdmin) { router.push(ROUTES.HOME); return; }
         setAdminName(
           player.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
         );
       })
-      .catch(() => router.push("/admin/login"));
+      .catch(() => router.push(ROUTES.ADMIN_LOGIN));
+
+    reloadDrinks();
+    reloadPeriods();
   }, [router]);
+
+  function reloadDrinks() {
+    fetch("/api/admin/drinks")
+      .then((r) => r.json())
+      .then((data) => setDrinks(data.drinks ?? []))
+      .catch(() => {});
+  }
+
+  function reloadPeriods() {
+    fetch("/api/admin/billing-periods")
+      .then((r) => r.json())
+      .then((data) => setPeriods(data.periods ?? []))
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    const period = periods[selPeriod];
+    if (!period) { setMembers([]); return; }
+    fetch(`/api/admin/billing-periods/${period.id}/members`)
+      .then((r) => r.json())
+      .then((data) => setMembers(data.members ?? []))
+      .catch(() => {});
+  }, [periods, selPeriod]);
 
   function toggleDrink(id: string, active: boolean) {
     setDrinks((prev) => prev.map((d) => (d.id === id ? { ...d, active } : d)));
+    fetch(`/api/admin/drinks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    }).catch(() => {});
   }
 
   function addDrink() {
     if (!newName || !newPrice) return;
     const price = Math.round(parseFloat(newPrice.replace(",", ".")) * 100);
-    setDrinks((prev) => [
-      ...prev,
-      { id: Date.now().toString(), name: newName, price_cents: price, active: newActive },
-    ]);
+    fetch("/api/admin/drinks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName, price_cents: price, active: newActive }),
+    })
+      .then(() => reloadDrinks())
+      .catch(() => {});
     setNewName(""); setNewPrice(""); setNewActive(true);
+  }
+
+  function createPeriod() {
+    if (!startDate) return;
+    fetch("/api/admin/billing-periods", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startDate,
+        endDate: endDate || null,
+        paymentInstructions: payNote || null,
+      }),
+    })
+      .then(() => {
+        reloadPeriods();
+        setSelPeriod(0);
+        setShowNew(false);
+        setStartDate(""); setEndDate(""); setPayNote("");
+      })
+      .catch(() => {});
   }
 
   function markPaid(id: string, paid: boolean) {
     setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, paid } : m)));
+    const period = periods[selPeriod];
+    if (!period) return;
+    fetch("/api/admin/payments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId: id, periodId: period.id, paid }),
+    }).catch(() => {});
   }
 
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push(ROUTES.ADMIN_LOGIN);
   }
 
   const paid     = members.filter((m) =>  m.paid).length;
@@ -353,7 +403,7 @@ export default function AdminDashboardPage() {
                   color="#eaedf2"
                   onClick={() => setPeriodOpen(!periodOpen)}
                 >
-                  <Text as="span">{MOCK_PERIODS[selPeriod].range}</Text>
+                  <Text as="span">{periods[selPeriod]?.range ?? "–"}</Text>
                   <Text
                     as="span"
                     borderRadius="9999px"
@@ -361,10 +411,10 @@ export default function AdminDashboardPage() {
                     py="2px"
                     fontSize="11px"
                     fontWeight="600"
-                    bg={selPeriod === 0 ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
-                    color={selPeriod === 0 ? "#0468b3" : "#6478a0"}
+                    bg={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
+                    color={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "#0468b3" : "#6478a0"}
                   >
-                    {selPeriod === 0 ? "Aktiv" : "Abgeschlossen"}
+                    {periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "Aktiv" : "Abgeschlossen"}
                   </Text>
                   <ChevronDown size={16} color="#5a6473" />
                 </Flex>
@@ -381,7 +431,7 @@ export default function AdminDashboardPage() {
                     overflow="hidden"
                     minW="220px"
                   >
-                    {MOCK_PERIODS.map((p, i) => (
+                    {periods.map((p, i) => (
                       <Box
                         key={p.id}
                         as="button"
@@ -502,6 +552,7 @@ export default function AdminDashboardPage() {
                     fontSize="14px"
                     fontWeight="600"
                     cursor="pointer"
+                    onClick={createPeriod}
                   >
                     Abrechnung erstellen
                   </Box>
