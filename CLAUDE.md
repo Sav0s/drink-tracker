@@ -19,24 +19,32 @@ Next.js 16 App Router App für die Kabinen-Bar des TSV Bobingen. Zwei Nutzergrup
 ```
 src/
 ├── app/
-│   ├── login/             # Google OAuth Login (Player)
-│   ├── home/              # Drink-Logging (Player)
-│   ├── profil/            # Verlauf + Ausloggen (Player)
+│   ├── login/             # Google OAuth Login (Spieler + Admin — ein einziger Login)
+│   ├── home/              # Drink-Logging (Player) + Billing-Modal bei abgeschlossener Abrechnung
+│   ├── profile/           # Verlauf + Ausloggen (Player)
 │   ├── admin/             # Admin-Bereich (Steel #6478a0)
-│   │   ├── login/         # Google OAuth Login (Admin)
-│   │   └── dashboard/     # Getränke CRUD + Abrechnung
+│   │   └── dashboard/     # Getränke CRUD + Abrechnung (eigener /admin/login existiert nicht mehr)
 │   ├── api/
-│   │   ├── me/            # GET → { id, name, isAdmin }
-│   │   └── auth/callback/ # Supabase OAuth Callback
-│   ├── auth/callback/     # Next.js Auth Callback Route
+│   │   ├── me/                    # GET → { id, name, isAdmin }
+│   │   ├── home/                  # GET → Getränke + Saldo + closedPeriod (Player)
+│   │   ├── bookings/              # POST/DELETE Buchungen
+│   │   ├── profile/                # GET → Abrechnungsperioden (Player)
+│   │   └── admin/                 # drinks, billing-periods, billing-periods/[id]/members, payments
+│   ├── auth/callback/     # Next.js Auth Callback Route — prüft player.isAdmin, leitet
+│   │                       # Admins zu /admin/dashboard, sonst zu /home (oder zu `next`)
 │   ├── layout.tsx         # Root Layout mit Inter Font + Chakra Provider
 │   ├── page.tsx           # Redirect → /login
 │   └── globals.css
-├── components/ui/
-│   └── provider.tsx       # Chakra ChakraProvider wrapper
+├── components/
+│   ├── LoadingState.tsx   # Zentrierter Spinner für noch nicht geladene Daten (statt 0,00 €/leer)
+│   └── ui/
+│       └── provider.tsx   # Chakra ChakraProvider wrapper
 ├── lib/
 │   ├── theme.ts           # createSystem + Design-Tokens
 │   ├── prisma.ts          # Prisma Client (singleton)
+│   ├── auth.ts             # getCurrentPlayer() / requireAdmin()
+│   ├── period.ts           # getActivePeriod() / formatPeriodRange()
+│   ├── constants.ts        # PERIOD_STATUS, PROFILE_STATUS, API_ERROR, ROUTES, ...
 │   └── supabase/
 │       ├── client.ts      # Browser-Client (createBrowserClient)
 │       └── server.ts      # Server-Client (createServerClient + cookies)
@@ -65,13 +73,15 @@ prisma/
 
 ## Aktueller Stand
 
-- Alle 5 Screens implementiert — komplett mit Chakra UI style props (kein Tailwind, keine `style={}`-Objekte)
-- **Auth läuft:** Supabase Google OAuth für Spieler und Admin. Admin-Redirect via `useEffect` + `/api/me`.
+- Alle Screens implementiert — komplett mit Chakra UI style props (kein Tailwind, keine `style={}`-Objekte)
+- **Ein einziger Login:** `/admin/login` wurde entfernt. Spieler und Admin melden sich beide über `/login` per Google OAuth an; `auth/callback` prüft `player.isAdmin` aus der DB und leitet entsprechend zu `/home` oder `/admin/dashboard` weiter. Die Admin-Dashboard-Seite prüft `isAdmin` zusätzlich selbst gegen `/api/me` und schickt Nicht-Admins zu `/home`.
 - **Prisma Schema angelegt + Migration angewandt** (`20260614144754_init`). Admin-User "Fabian Hauser" in DB (`is_admin = true`).
-- **Backend angebunden:** home/profil/admin-dashboard nutzen jetzt echte Prisma-Queries über API-Routes (`/api/home`, `/api/bookings`, `/api/profil`, `/api/admin/*`) statt Mock-Daten. Alte Mock-Daten liegen als Fixtures in `prisma/fixtures/`.
+- **Backend angebunden:** home/profile/admin-dashboard nutzen echte Prisma-Queries über API-Routes (`/api/home`, `/api/bookings`, `/api/profile`, `/api/admin/*`) statt Mock-Daten. Alte Mock-Daten liegen als Fixtures in `prisma/fixtures/`.
 - `src/proxy.ts` aktiv (Route Guards laufen; Next.js 16 hat `middleware.ts` zu `proxy.ts` umbenannt)
-- Noch kein Billing Modal (erscheint wenn Abrechnungsperiode endet)
+- **Billing-Modal:** erscheint auf `/home`, wenn die zuletzt abgeschlossene Abrechnungsperiode für den Spieler noch eine offene Zahlung hat (Betrag + Zahlungshinweise oder Fallback-Text).
+- **Loading-States:** `home`, `profile` und `admin/dashboard` (Getränke- und Abrechnungs-Tab inkl. Mitgliederliste) zeigen während des initialen Fetches einen Spinner (`LoadingState`) statt `0,00 €`/leerer Listen.
 - TSV Bobingen Logo noch nicht eingebunden (liegt in Design-Assets)
+- 2 bekannte, noch offene TypeScript-Fehler in `admin/dashboard/page.tsx`: `Box as="input" type=...` und `Box as="textarea" onChange=...` (Chakra-Polymorphic-Typing-Problem, betrifft nicht das Laufzeitverhalten)
 
 ## Backend
 
@@ -83,7 +93,7 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Auth-Flow: Google OAuth → `/auth/callback` → Weiterleitung zu `/home` oder `/admin/dashboard`.
+Auth-Flow: Google OAuth (immer über `/login`) → `/auth/callback` → liest `player.isAdmin` aus der DB → Weiterleitung zu `/admin/dashboard` (Admin) oder `/home` (Spieler). Es gibt keinen separaten Admin-Login mehr.
 Clients: `src/lib/supabase/client.ts` (Browser), `src/lib/supabase/server.ts` (Server/RSC).
 
 ### Prisma + PostgreSQL

@@ -17,7 +17,7 @@ Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen
 |---|---|---|
 | `/login` | Login | Google OAuth → Spieler zu `/home`, Admins direkt zu `/admin/dashboard` |
 | `/home` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
-| `/profil` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
+| `/profile` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
 | `/admin/dashboard` | Admin Dashboard | Getränke CRUD + Abrechnung verwalten |
 
 ## Setup
@@ -52,8 +52,8 @@ Geldbeträge werden als **Integer-Cents** gespeichert. Formatierung: `1,50 €` 
 
 ## Auth
 
-- **Spieler:** Google OAuth via Supabase. Nach Login Weiterleitung zu `/home`.
-- **Admin:** Google OAuth via Supabase. `is_admin = true` in der `players` Tabelle (Prisma). Route `/admin/*` geschützt via `/api/me`-Check im `useEffect`.
+- Ein einziger Login (`/login`) für Spieler und Admin, Google OAuth via Supabase. `/auth/callback` liest `is_admin` aus der `players`-Tabelle (Prisma) und leitet Admins direkt zu `/admin/dashboard`, alle anderen zu `/home` weiter.
+- Route `/admin/*` ist zusätzlich serverseitig via `src/proxy.ts` gegen nicht-eingeloggte Nutzer geschützt; das Admin-Dashboard prüft `isAdmin` zusätzlich selbst via `/api/me` und schickt Nicht-Admins zu `/home`.
 
 ## Design
 
