@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
@@ -103,6 +103,7 @@ export default function AdminDashboardPage() {
   const [openMember, setOpenMember] = useState<string | null>(null);
   const [showNew,    setShowNew]    = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
+  const periodPickerRef = useRef<HTMLDivElement>(null);
   const [adminName,  setAdminName]  = useState("A");
   const [drinksLoaded,  setDrinksLoaded]  = useState(false);
   const [periodsLoaded, setPeriodsLoaded] = useState(false);
@@ -155,6 +156,18 @@ export default function AdminDashboardPage() {
       .catch(() => {})
       .finally(() => setMembersLoading(false));
   }, [periods, selPeriod, periodsLoaded]);
+
+  // Close the period-picker dropdown on any click outside of it.
+  useEffect(() => {
+    if (!periodOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (!periodPickerRef.current?.contains(e.target as Node)) {
+        setPeriodOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [periodOpen]);
 
   function toggleDrink(id: string, active: boolean) {
     setDrinks((prev) => prev.map((d) => (d.id === id ? { ...d, active } : d)));
@@ -405,7 +418,7 @@ export default function AdminDashboardPage() {
             <Flex alignItems="center" gap={3} mb={4} flexWrap="wrap">
 
               {/* Period picker */}
-              <Box position="relative">
+              <Box position="relative" ref={periodPickerRef}>
                 <Flex
                   as="button"
                   alignItems="center"
