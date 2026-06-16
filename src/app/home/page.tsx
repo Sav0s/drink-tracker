@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check } from "lucide-react";
 import { formatCents } from "@/types";
 import { ROUTES, DEFAULT_PLAYER_NAME, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
+import { LoadingState } from "@/components/LoadingState";
 
 interface DrinkState {
   id: string;
@@ -68,6 +69,7 @@ export default function HauptseiteePage() {
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
   const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -87,7 +89,8 @@ export default function HauptseiteePage() {
         setDrinks(data.drinks ?? []);
         setClosedPeriodNotice(data.closedPeriod ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [router]);
 
   const saldo = drinks.reduce((sum, d) => sum + d.count * d.price_cents, 0);
@@ -163,85 +166,91 @@ export default function HauptseiteePage() {
         </Box>
       </Flex>
 
-      {/* Saldo hero */}
-      <Box
-        mx={5} mt={5} mb={2}
-        px="22px" py={5}
-        borderRadius="16px"
-        bg="linear-gradient(135deg, rgba(4,104,179,0.22) 0%, rgba(4,104,179,0.08) 100%)"
-        border="1px solid rgba(4,104,179,0.3)"
-      >
-        <Text
-          fontSize="12px" fontWeight="600" letterSpacing="0.08em"
-          textTransform="uppercase" color="#939dab" mb="6px"
-        >
-          Du schuldest
-        </Text>
-        <Text fontSize="40px" fontWeight="800" letterSpacing="-1.2px" color="#eaedf2" mb="12px">
-          {formatCents(saldo)}
-        </Text>
-        <Flex alignItems="center" gap={2}>
-          <Text as="span" fontSize="12px" color="#939dab">
-            {drinks.reduce((s, d) => s + d.count, 0)} Getränke
-          </Text>
-          <Text as="span" fontSize="12px" color="#5c6675">·</Text>
-          <Text as="span" fontSize="12px" color="#939dab">Abrechnung seit 01.06.</Text>
-        </Flex>
-      </Box>
-
-      {/* Section label */}
-      <Text
-        fontSize="11px" fontWeight="700" letterSpacing="0.1em"
-        textTransform="uppercase" color="#5c6675"
-        px={5} pt="12px" pb={2}
-      >
-        Getränke · tippen zum Buchen
-      </Text>
-
-      {/* Drink cards */}
-      <Flex flexDir="column" gap={2} px={5}>
-        {drinks.map((drink) => (
-          <Flex
-            key={drink.id}
-            alignItems="center"
-            justifyContent="space-between"
-            px={4}
-            py="14px"
-            bg="#151a21"
-            border="1px solid rgba(255,255,255,0.07)"
-            borderRadius="12px"
-            cursor="pointer"
-            onClick={() => bookDrink(drink)}
-            transition="border-color 0.12s"
+      {loading ? (
+        <LoadingState minH="320px" />
+      ) : (
+        <>
+          {/* Saldo hero */}
+          <Box
+            mx={5} mt={5} mb={2}
+            px="22px" py={5}
+            borderRadius="16px"
+            bg="linear-gradient(135deg, rgba(4,104,179,0.22) 0%, rgba(4,104,179,0.08) 100%)"
+            border="1px solid rgba(4,104,179,0.3)"
           >
-            <Flex flexDir="column" gap={1}>
-              <Text fontSize="16px" fontWeight="600" color="#eaedf2">{drink.name}</Text>
-              <Text fontSize="13px" color="#939dab">{formatCents(drink.price_cents)}</Text>
-              <Strichliste count={drink.count} />
-            </Flex>
+            <Text
+              fontSize="12px" fontWeight="600" letterSpacing="0.08em"
+              textTransform="uppercase" color="#939dab" mb="6px"
+            >
+              Du schuldest
+            </Text>
+            <Text fontSize="40px" fontWeight="800" letterSpacing="-1.2px" color="#eaedf2" mb="12px">
+              {formatCents(saldo)}
+            </Text>
             <Flex alignItems="center" gap={2}>
-              <Box
-                as="button"
-                bg="none"
-                border="none"
-                cursor="pointer"
-                p="6px"
-                onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEditSheet({ drink }); }}
-              >
-                <Pencil size={13} color="#5c6675" />
-              </Box>
-              <Flex
-                w="56px" h="56px" borderRadius="14px" bg="#0468b3"
-                alignItems="center" justifyContent="center"
-                boxShadow="0 8px 20px -8px rgba(4,104,179,0.7)"
-                flexShrink={0}
-              >
-                <Plus size={22} color="#fff" />
-              </Flex>
+              <Text as="span" fontSize="12px" color="#939dab">
+                {drinks.reduce((s, d) => s + d.count, 0)} Getränke
+              </Text>
+              <Text as="span" fontSize="12px" color="#5c6675">·</Text>
+              <Text as="span" fontSize="12px" color="#939dab">Abrechnung seit 01.06.</Text>
             </Flex>
+          </Box>
+
+          {/* Section label */}
+          <Text
+            fontSize="11px" fontWeight="700" letterSpacing="0.1em"
+            textTransform="uppercase" color="#5c6675"
+            px={5} pt="12px" pb={2}
+          >
+            Getränke · tippen zum Buchen
+          </Text>
+
+          {/* Drink cards */}
+          <Flex flexDir="column" gap={2} px={5}>
+            {drinks.map((drink) => (
+              <Flex
+                key={drink.id}
+                alignItems="center"
+                justifyContent="space-between"
+                px={4}
+                py="14px"
+                bg="#151a21"
+                border="1px solid rgba(255,255,255,0.07)"
+                borderRadius="12px"
+                cursor="pointer"
+                onClick={() => bookDrink(drink)}
+                transition="border-color 0.12s"
+              >
+                <Flex flexDir="column" gap={1}>
+                  <Text fontSize="16px" fontWeight="600" color="#eaedf2">{drink.name}</Text>
+                  <Text fontSize="13px" color="#939dab">{formatCents(drink.price_cents)}</Text>
+                  <Strichliste count={drink.count} />
+                </Flex>
+                <Flex alignItems="center" gap={2}>
+                  <Box
+                    as="button"
+                    bg="none"
+                    border="none"
+                    cursor="pointer"
+                    p="6px"
+                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); setEditSheet({ drink }); }}
+                  >
+                    <Pencil size={13} color="#5c6675" />
+                  </Box>
+                  <Flex
+                    w="56px" h="56px" borderRadius="14px" bg="#0468b3"
+                    alignItems="center" justifyContent="center"
+                    boxShadow="0 8px 20px -8px rgba(4,104,179,0.7)"
+                    flexShrink={0}
+                  >
+                    <Plus size={22} color="#fff" />
+                  </Flex>
+                </Flex>
+              </Flex>
+            ))}
           </Flex>
-        ))}
-      </Flex>
+        </>
+      )}
 
       {/* Undo toast */}
       {toast && (
