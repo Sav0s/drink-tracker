@@ -1,24 +1,24 @@
 # Kabinen-Bar · Drink Tracker
 
-Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen entnommene Getränke aus dem Kühlschrank; die App trackt Schulden pro Abrechnungsperiode. Der Admin verwaltet das Getränkeangebot und schließt Abrechnungen ab.
+Internal drink tracker for the TSV Bobingen Kabinen-Bar. Players log drinks taken from the fridge; the app tracks debts per billing period. The admin manages the drink catalog and closes out billing periods.
 
 ## Tech Stack
 
 - **Next.js 16** (App Router, TypeScript)
-- **Chakra UI v3** mit Custom Dark-Theme (style props, kein Tailwind)
+- **Chakra UI v3** with a custom dark theme (style props, no Tailwind)
 - **Supabase** (Auth — Google OAuth)
-- **Prisma v7** + **PostgreSQL** (Datenbank, via `@prisma/adapter-pg`)
-- **Lucide React** (Icons)
-- **Vercel** (Deployment)
+- **Prisma v7** + **PostgreSQL** (database, via `@prisma/adapter-pg`)
+- **Lucide React** (icons)
+- **Vercel** (deployment)
 
 ## Screens
 
-| Route | Screen | Beschreibung |
+| Route | Screen | Description |
 |---|---|---|
-| `/login` | Login | Google OAuth → Spieler zu `/home`, Admins direkt zu `/admin/dashboard` |
-| `/home` | Hauptseite | Getränke buchen, Saldo sehen, Undo-Toast |
-| `/profil` | Profil/Verlauf | Kontostand + Abrechnungsperioden |
-| `/admin/dashboard` | Admin Dashboard | Getränke CRUD + Abrechnung verwalten |
+| `/login` | Login | Google OAuth → players go to `/home`, admins go straight to `/admin/dashboard` |
+| `/home` | Home | Book drinks, see balance, undo toast |
+| `/profile` | Profile/history | Account balance + billing periods |
+| `/admin/dashboard` | Admin dashboard | Drink CRUD + manage billing |
 
 ## Setup
 
@@ -26,7 +26,7 @@ Interner Getränke-Tracker für die Kabinen-Bar des TSV Bobingen. Spieler loggen
 npm install
 ```
 
-`.env.local` anlegen:
+Create `.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -38,7 +38,7 @@ DATABASE_URL=postgresql://...
 npm run dev
 ```
 
-## Datenmodell
+## Data Model
 
 ```
 Player          { id, name }
@@ -48,17 +48,17 @@ Booking         { id, player_id, drink_id, period_id, created_at }
 Payment         { id, player_id, period_id, paid, paid_at, confirmed }
 ```
 
-Geldbeträge werden als **Integer-Cents** gespeichert. Formatierung: `1,50 €` (deutsches Format, via `formatCents()` in `src/types/index.ts`).
+Money amounts are stored as **integer cents**. Display formatting: `1,50 €` (German format, via `formatCents()` in `src/types/index.ts`).
 
 ## Auth
 
-- **Spieler:** Google OAuth via Supabase. Nach Login Weiterleitung zu `/home`.
-- **Admin:** Google OAuth via Supabase. `is_admin = true` in der `players` Tabelle (Prisma). Route `/admin/*` geschützt via `/api/me`-Check im `useEffect`.
+- A single login (`/login`) for both players and admins, Google OAuth via Supabase. `/auth/callback` reads `is_admin` from the `players` table (Prisma) and redirects admins straight to `/admin/dashboard`, everyone else to `/home`.
+- The `/admin/*` route is additionally protected server-side via `src/proxy.ts` against unauthenticated users; the admin dashboard also checks `isAdmin` itself via `/api/me` and redirects non-admins to `/home`.
 
 ## Design
 
-Dark-only. Design-Tokens in [`src/lib/theme.ts`](src/lib/theme.ts). Zwei Farbwelten:
-- **Player:** Club-Blau `#0468b3`
-- **Admin:** Steel `#6478a0`
+Dark-only. Design tokens in [`src/lib/theme.ts`](src/lib/theme.ts). Two color worlds:
+- **Player:** club blue `#0468b3`
+- **Admin:** steel `#6478a0`
 
-Design-Referenz (Hi-Fi Prototypen) im ZIP-Handoff: `design_handoff_drink_tracker/`.
+Design reference (hi-fi prototypes) in the ZIP handoff: `design_handoff_drink_tracker/`.
