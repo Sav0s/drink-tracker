@@ -6,13 +6,20 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check } from "lucide-react";
 import { formatCents } from "@/types";
-import { ROUTES, DEFAULT_PLAYER_NAME } from "@/lib/constants";
+import { ROUTES, DEFAULT_PLAYER_NAME, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
 
 interface DrinkState {
   id: string;
   name: string;
   price_cents: number;
   count: number;
+}
+
+interface ClosedPeriod {
+  id: string;
+  range: string;
+  total_cents: number;
+  payment_instructions: string | null;
 }
 
 interface Toast   { drink: DrinkState }
@@ -60,6 +67,7 @@ export default function HauptseiteePage() {
   const [toast,     setToast]     = useState<Toast | null>(null);
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
+  const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -75,7 +83,10 @@ export default function HauptseiteePage() {
 
     fetch("/api/home")
       .then((r) => r.json())
-      .then((data) => setDrinks(data.drinks ?? []))
+      .then((data) => {
+        setDrinks(data.drinks ?? []);
+        setClosedPeriodNotice(data.closedPeriod ?? null);
+      })
       .catch(() => {});
   }, [router]);
 
@@ -354,6 +365,86 @@ export default function HauptseiteePage() {
               onClick={() => setEditSheet({ drink: null })}
             >
               Fertig
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* Closed-period payment notice */}
+      {closedPeriodNotice && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.6)"
+            zIndex={200}
+            onClick={() => setClosedPeriodNotice(null)}
+          />
+          <Box
+            position="fixed"
+            bottom={0}
+            left="50%"
+            transform="translateX(-50%)"
+            w="full"
+            maxW="430px"
+            bg="#151a21"
+            borderTopLeftRadius="26px"
+            borderTopRightRadius="26px"
+            px={5}
+            pt={4}
+            pb={8}
+            zIndex={201}
+          >
+            <Box
+              w="36px" h="4px" borderRadius="9999px"
+              bg="rgba(255,255,255,0.12)"
+              mx="auto" mb={4}
+            />
+            <Text fontSize="18px" fontWeight="700" color="#eaedf2" mb={1}>
+              Abrechnung beendet
+            </Text>
+            <Text fontSize="13px" color="#939dab" mb={4}>
+              Abrechnung {closedPeriodNotice.range}
+            </Text>
+            <Box
+              px={4} py="14px"
+              mb={5}
+              bg="#1b212b"
+              borderRadius="12px"
+            >
+              <Text fontSize="12px" fontWeight="600" letterSpacing="0.06em" textTransform="uppercase" color="#939dab" mb="6px">
+                Du schuldest
+              </Text>
+              <Text fontSize="28px" fontWeight="800" color="#eaedf2" mb={closedPeriodNotice.payment_instructions ? 4 : 0}>
+                {formatCents(closedPeriodNotice.total_cents)}
+              </Text>
+              {closedPeriodNotice.payment_instructions ? (
+                <Text fontSize="13px" color="#939dab" whiteSpace="pre-wrap">
+                  {closedPeriodNotice.payment_instructions}
+                </Text>
+              ) : (
+                <Text fontSize="13px" color="#939dab">
+                  {NO_PAYMENT_INSTRUCTIONS_FALLBACK}
+                </Text>
+              )}
+            </Box>
+            <Box
+              as="button"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              w="full"
+              h="52px"
+              borderRadius="12px"
+              bg="#0468b3"
+              color="white"
+              fontSize="16px"
+              fontWeight="700"
+              border="none"
+              cursor="pointer"
+              onClick={() => setClosedPeriodNotice(null)}
+            >
+              Verstanden
             </Box>
           </Box>
         </>

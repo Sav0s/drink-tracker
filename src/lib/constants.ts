@@ -48,3 +48,7 @@ export const PROTECTED_ROUTES = [ROUTES.HOME, ROUTES.PROFILE, "/admin"] as const
 
 /** Fallback player name shown when no name can be derived from the auth profile. */
 export const DEFAULT_PLAYER_NAME = "Spieler";
+
+/** Fallback copy shown when a closed billing period has no payment instructions set. */
+export const NO_PAYMENT_INSTRUCTIONS_FALLBACK =
+  "Bitte beim Kassenwart erfragen, wie die Zahlung erfolgen soll.";
