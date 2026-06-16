@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   return (
     <Flex minH="100dvh" flexDir="column" bg="#0d1014" px={5}>
-      <Flex flex={1} flexDir="column" alignItems="center" justifyContent="center">
+      <Flex flex={1} flexDir="column" alignItems="center" justifyContent="center" w="full" maxW="sm" mx="auto">
         <Flex
           w="84px" h="84px" borderRadius="9999px" bg="#1b212b"
           alignItems="center" justifyContent="center"
