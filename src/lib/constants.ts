@@ -39,7 +39,6 @@ export const ROUTES = {
   LOGIN: "/login",
   HOME: "/home",
   PROFILE: "/profile",
-  ADMIN_LOGIN: "/admin/login",
   ADMIN_DASHBOARD: "/admin/dashboard",
 } as const;
 

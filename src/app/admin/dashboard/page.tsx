@@ -122,7 +122,7 @@ export default function AdminDashboardPage() {
           player.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
         );
       })
-      .catch(() => router.push(ROUTES.ADMIN_LOGIN));
+      .catch(() => router.push(ROUTES.LOGIN));
 
     reloadDrinks();
     reloadPeriods();
@@ -212,7 +212,7 @@ export default function AdminDashboardPage() {
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push(ROUTES.ADMIN_LOGIN);
+    router.push(ROUTES.LOGIN);
   }
 
   const paid     = members.filter((m) =>  m.paid).length;

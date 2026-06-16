@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { ROUTES } from "@/lib/constants";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -44,7 +45,12 @@ export async function GET(request: Request) {
 
   // Guard admin routes
   if (next.startsWith("/admin") && !player.isAdmin) {
-    return NextResponse.redirect(`${origin}/home`);
+    return NextResponse.redirect(`${origin}${ROUTES.HOME}`);
+  }
+
+  // Admins signing in through the regular login land on their dashboard.
+  if (next === ROUTES.HOME && player.isAdmin) {
+    return NextResponse.redirect(`${origin}${ROUTES.ADMIN_DASHBOARD}`);
   }
 
   return NextResponse.redirect(`${origin}${next}`);
