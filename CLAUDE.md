@@ -2,89 +2,99 @@
 
 # Kabinen-Bar Drink Tracker
 
-## Projekt-Überblick
+## Project Overview
 
-Next.js 16 App Router App für die Kabinen-Bar des TSV Bobingen. Zwei Nutzergruppen: Spieler (buchen Getränke, sehen Schulden) und Admin (verwaltet Getränke, Abrechnungsperioden, markiert Zahlungen).
+Next.js 16 App Router app for the TSV Bobingen Kabinen-Bar. Two user groups: players (book drinks, see debts) and admin (manages drinks, billing periods, marks payments).
 
-## Wichtige Konventionen
+## Key Conventions
 
-- **Kein Tailwind, keine inline `style={}`-Objekte.** Styling ausschließlich via Chakra UI style props (`<Box bg="#151a21" px={5} borderRadius="12px">`). Nur SVG-Präsentationsattribute (fill, stroke) dürfen als Attribute gesetzt werden.
-- **Dark-only.** Kein Light-Mode, kein `useColorMode`. `config.initialColorMode = 'dark'`, `useSystemColorMode = false`.
-- **Geldbeträge immer in Cents (Integer).** Für Anzeige `formatCents()` aus `src/types/index.ts` verwenden → `1,50 €`.
-- **Deutsch durchgehend.** Alle Labels, Fehlermeldungen, UI-Copy auf Deutsch.
-- **Chakra UI v3** — API unterscheidet sich von v2. Theme via `createSystem` + `defineConfig`, Provider via `<ChakraProvider value={system}>`.
+- **No Tailwind, no inline `style={}` objects.** Styling exclusively via Chakra UI style props (`<Box bg="#151a21" px={5} borderRadius="12px">`). Only SVG presentation attributes (fill, stroke) may be set as attributes.
+- **Dark-only.** No light mode, no `useColorMode`. `config.initialColorMode = 'dark'`, `useSystemColorMode = false`.
+- **Money amounts always in cents (integer).** For display, use `formatCents()` from `src/types/index.ts` → `1,50 €`.
+- **German throughout for in-app UI.** All labels, error messages, and UI copy shown inside the running app are in German. This applies only to user-facing strings — code, comments, commit messages, and docs (like this file) are in English per the repo-language convention.
+- **Chakra UI v3** — API differs from v2. Theme via `createSystem` + `defineConfig`, provider via `<ChakraProvider value={system}>`.
 
-## Struktur
+## Structure
 
 ```
 src/
 ├── app/
-│   ├── login/             # Google OAuth Login (Player)
-│   ├── home/              # Drink-Logging (Player)
-│   ├── profil/            # Verlauf + Ausloggen (Player)
-│   ├── admin/             # Admin-Bereich (Steel #6478a0)
-│   │   ├── login/         # Google OAuth Login (Admin)
-│   │   └── dashboard/     # Getränke CRUD + Abrechnung
+│   ├── login/             # Google OAuth login (players + admin — single login)
+│   ├── home/              # Drink logging (player) + billing modal when a period is closed
+│   ├── profile/           # History + logout (player)
+│   ├── admin/              # Admin area (steel #6478a0)
+│   │   └── dashboard/     # Drink CRUD + billing (dedicated /admin/login no longer exists)
 │   ├── api/
-│   │   ├── me/            # GET → { id, name, isAdmin }
-│   │   └── auth/callback/ # Supabase OAuth Callback
-│   ├── auth/callback/     # Next.js Auth Callback Route
-│   ├── layout.tsx         # Root Layout mit Inter Font + Chakra Provider
+│   │   ├── me/                    # GET → { id, name, isAdmin }
+│   │   ├── home/                  # GET → drinks + balance + closedPeriod (player)
+│   │   ├── bookings/              # POST/DELETE bookings
+│   │   ├── profile/                # GET → billing periods (player)
+│   │   └── admin/                 # drinks, billing-periods, billing-periods/[id]/members, payments
+│   ├── auth/callback/     # Next.js auth callback route — checks player.isAdmin, redirects
+│   │                       # admins to /admin/dashboard, others to /home (or to `next`)
+│   ├── layout.tsx         # Root layout with Inter font + Chakra provider
 │   ├── page.tsx           # Redirect → /login
 │   └── globals.css
-├── components/ui/
-│   └── provider.tsx       # Chakra ChakraProvider wrapper
+├── components/
+│   ├── LoadingState.tsx   # Centered spinner for not-yet-loaded data (instead of 0,00 €/empty)
+│   └── ui/
+│       └── provider.tsx   # Chakra ChakraProvider wrapper
 ├── lib/
-│   ├── theme.ts           # createSystem + Design-Tokens
-│   ├── prisma.ts          # Prisma Client (singleton)
+│   ├── theme.ts           # createSystem + design tokens
+│   ├── prisma.ts          # Prisma client (singleton)
+│   ├── auth.ts             # getCurrentPlayer() / requireAdmin()
+│   ├── period.ts           # getActivePeriod() / formatPeriodRange()
+│   ├── constants.ts        # PERIOD_STATUS, PROFILE_STATUS, API_ERROR, ROUTES, ...
 │   └── supabase/
-│       ├── client.ts      # Browser-Client (createBrowserClient)
-│       └── server.ts      # Server-Client (createServerClient + cookies)
-├── types/index.ts         # DB-Typen + formatCents()
-└── proxy.ts               # Route Guards (aktiv — Next.js 16 Proxy-Convention, ersetzt middleware.ts)
+│       ├── client.ts      # Browser client (createBrowserClient)
+│       └── server.ts      # Server client (createServerClient + cookies)
+├── types/index.ts         # DB types + formatCents()
+└── proxy.ts               # Route guards (active — Next.js 16 proxy convention, replaces middleware.ts)
 
 prisma/
-├── schema.prisma          # DB-Schema (Player, Drink, BillingPeriod, Booking, Payment)
+├── schema.prisma          # DB schema (Player, Drink, BillingPeriod, Booking, Payment)
 └── migrations/
     └── 20260614144754_init/
 ```
 
-## Design-Tokens (wichtigste)
+## Design Tokens (most important)
 
-| Token | Wert | Verwendung |
+| Token | Value | Use |
 |---|---|---|
-| `#0d1014` | App-Background (Player) |
-| `#0b0e13` | App-Background (Admin) |
-| `#151a21` | Surface / Cards |
-| `#1b212b` | Surface 2 / Inputs |
-| `#0468b3` | Brand (Player) |
-| `#6478a0` | Steel (Admin) |
-| `#2fa968` | Success / Bezahlt |
-| `#d6a23a` | Amber / Ausstehend |
-| `#e0535f` | Danger / Ausloggen |
+| `#0d1014` | App background (player) |
+| `#0b0e13` | App background (admin) |
+| `#151a21` | Surface / cards |
+| `#1b212b` | Surface 2 / inputs |
+| `#0468b3` | Brand (player) |
+| `#6478a0` | Steel (admin) |
+| `#2fa968` | Success / paid |
+| `#d6a23a` | Amber / pending |
+| `#e0535f` | Danger / logout |
 
-## Aktueller Stand
+## Current Status
 
-- Alle 5 Screens implementiert — komplett mit Chakra UI style props (kein Tailwind, keine `style={}`-Objekte)
-- **Auth läuft:** Supabase Google OAuth für Spieler und Admin. Admin-Redirect via `useEffect` + `/api/me`.
-- **Prisma Schema angelegt + Migration angewandt** (`20260614144754_init`). Admin-User "Fabian Hauser" in DB (`is_admin = true`).
-- **Backend angebunden:** home/profil/admin-dashboard nutzen jetzt echte Prisma-Queries über API-Routes (`/api/home`, `/api/bookings`, `/api/profil`, `/api/admin/*`) statt Mock-Daten. Alte Mock-Daten liegen als Fixtures in `prisma/fixtures/`.
-- `src/proxy.ts` aktiv (Route Guards laufen; Next.js 16 hat `middleware.ts` zu `proxy.ts` umbenannt)
-- Noch kein Billing Modal (erscheint wenn Abrechnungsperiode endet)
-- TSV Bobingen Logo noch nicht eingebunden (liegt in Design-Assets)
+- All screens implemented — fully with Chakra UI style props (no Tailwind, no `style={}` objects)
+- **Single login:** `/admin/login` has been removed. Players and admins both sign in via `/login` with Google OAuth; `auth/callback` checks `player.isAdmin` from the DB and redirects to `/home` or `/admin/dashboard` accordingly. The admin dashboard page also checks `isAdmin` itself against `/api/me` and redirects non-admins to `/home`.
+- **Prisma schema created + migration applied** (`20260614144754_init`). Admin user "Fabian Hauser" in DB (`is_admin = true`).
+- **Backend connected:** home/profile/admin-dashboard use real Prisma queries via API routes (`/api/home`, `/api/bookings`, `/api/profile`, `/api/admin/*`) instead of mock data. Old mock data lives as fixtures in `prisma/fixtures/`.
+- `src/proxy.ts` active (route guards run; Next.js 16 renamed `middleware.ts` to `proxy.ts`)
+- **Billing modal:** appears on `/home` when the player's most recently closed billing period still has an open payment (amount + payment instructions, or fallback text).
+- **Loading states:** `home`, `profile`, and `admin/dashboard` (drinks and billing tabs, including the member list) show a spinner (`LoadingState`) during the initial fetch instead of `0,00 €`/empty lists.
+- TSV Bobingen logo not yet embedded (lives in design assets)
+- 2 known, still-open TypeScript errors in `admin/dashboard/page.tsx`: `Box as="input" type=...` and `Box as="textarea" onChange=...` (Chakra polymorphic-typing issue, doesn't affect runtime behavior)
 
 ## Backend
 
 ### Supabase Auth
 
-Env-Variablen in `.env.local`:
+Env variables in `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Auth-Flow: Google OAuth → `/auth/callback` → Weiterleitung zu `/home` oder `/admin/dashboard`.
-Clients: `src/lib/supabase/client.ts` (Browser), `src/lib/supabase/server.ts` (Server/RSC).
+Auth flow: Google OAuth (always via `/login`) → `/auth/callback` → reads `player.isAdmin` from the DB → redirects to `/admin/dashboard` (admin) or `/home` (player). There is no separate admin login anymore.
+Clients: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server/RSC).
 
 ### Prisma + PostgreSQL
 
@@ -93,7 +103,7 @@ DATABASE_URL=postgresql://...
 ```
 
 Schema in `prisma/schema.prisma`. Adapter: `@prisma/adapter-pg`.
-Tabellen: `players`, `drinks`, `billing_periods`, `bookings`, `payments`.
-Migration bereits angewandt. Preise immer als **Integer-Cents**.
+Tables: `players`, `drinks`, `billing_periods`, `bookings`, `payments`.
+Migration already applied. Prices always as **integer cents**.
 
-API-Route: `GET /api/me` → gibt `{ id, name, isAdmin }` zurück (Supabase User → Prisma Player lookup).
+API route: `GET /api/me` → returns `{ id, name, isAdmin }` (Supabase user → Prisma player lookup).
