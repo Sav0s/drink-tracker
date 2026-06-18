@@ -3,25 +3,29 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text, Image } from "@chakra-ui/react";
-import { ChevronLeft, Receipt, Settings, LogOut } from "lucide-react";
+import { ChevronLeft, Receipt, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, DEFAULT_PLAYER_NAME } from "@/lib/constants";
 
 interface AppBarProps {
   /** Title shown on the left. Defaults to the app name. */
   title?: string;
+  /** Greyed-out suffix after the title, e.g. "Admin Console". */
+  subtitle?: string;
   /** Show a back chevron that returns to the home screen. */
   showBack?: boolean;
 }
 
 /**
- * Shared top bar: app/page title on the left, account avatar with a dropdown
- * menu (Buchungen · Konto verwalten · Ausloggen) on the right.
+ * Shared top bar: app/page title on the left (click → home), account avatar
+ * with a dropdown menu (Buchungen · [Admin Console] · Konto verwalten ·
+ * Ausloggen) on the right. The Admin Console entry only shows for admins.
  */
-export function AppBar({ title = "Kabinen-Bar", showBack = false }: AppBarProps) {
+export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false }: AppBarProps) {
   const router = useRouter();
   const [player, setPlayer] = useState("");
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -36,6 +40,11 @@ export function AppBar({ title = "Kabinen-Bar", showBack = false }: AppBarProps)
       setPlayer(name);
       setEmail(user.email ?? "");
     });
+
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((me) => setIsAdmin(Boolean(me?.isAdmin)))
+      .catch(() => {});
   }, []);
 
   const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -69,16 +78,32 @@ export function AppBar({ title = "Kabinen-Bar", showBack = false }: AppBarProps)
             <ChevronLeft size={20} color="#eaedf2" />
           </Box>
         )}
-        {!showBack && (
-          <Image
-            src="/tsv-bobingen-logo.png"
-            alt="TSV Bobingen"
-            w="28px"
-            h="28px"
-            objectFit="contain"
-          />
-        )}
-        <Text fontSize="17px" fontWeight="700" color="#eaedf2">{title}</Text>
+        <Flex
+          as="button"
+          alignItems="center"
+          gap={2}
+          bg="none"
+          border="none"
+          p={0}
+          cursor="pointer"
+          onClick={() => router.push(ROUTES.HOME)}
+        >
+          {!showBack && (
+            <Image
+              src="/tsv-bobingen-logo.png"
+              alt="TSV Bobingen"
+              w="28px"
+              h="28px"
+              objectFit="contain"
+            />
+          )}
+          <Text fontSize="17px" fontWeight="700" color="#eaedf2">
+            {title}
+            {subtitle && (
+              <Text as="span" fontWeight="400" color="#939dab">{` · ${subtitle}`}</Text>
+            )}
+          </Text>
+        </Flex>
       </Flex>
 
       <Box position="relative">
@@ -163,6 +188,27 @@ export function AppBar({ title = "Kabinen-Bar", showBack = false }: AppBarProps)
                 <Receipt size={17} color="#939dab" />
                 <Text fontSize="14px" color="#eaedf2">Buchungen</Text>
               </Flex>
+
+              {/* Admin Console (admins only) */}
+              {isAdmin && (
+                <Flex
+                  as="button"
+                  w="full"
+                  alignItems="center"
+                  gap={3}
+                  px={4}
+                  py="11px"
+                  bg="none"
+                  border="none"
+                  cursor="pointer"
+                  textAlign="left"
+                  _hover={{ bg: "#1b212b" }}
+                  onClick={() => { setMenuOpen(false); router.push(ROUTES.ADMIN_DASHBOARD); }}
+                >
+                  <LayoutDashboard size={17} color="#939dab" />
+                  <Text fontSize="14px" color="#eaedf2">Admin Console</Text>
+                </Flex>
+              )}
 
               {/* Konto verwalten */}
               <Flex
