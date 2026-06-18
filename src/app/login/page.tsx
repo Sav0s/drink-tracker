@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, Image } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -17,13 +17,14 @@ export default function LoginPage() {
   return (
     <Flex minH="100dvh" flexDir="column" bg="#0d1014" px={5}>
       <Flex flex={1} flexDir="column" alignItems="center" justifyContent="center" w="full" maxW="sm" mx="auto">
-        <Flex
-          w="84px" h="84px" borderRadius="9999px" bg="#1b212b"
-          alignItems="center" justifyContent="center"
-          fontSize="36px" mb={5}
-        >
-          ⚽
-        </Flex>
+        <Image
+          src="/tsv-bobingen-logo.png"
+          alt="TSV Bobingen"
+          w="96px"
+          h="96px"
+          objectFit="contain"
+          mb={5}
+        />
 
         <Text fontSize="27px" fontWeight="800" letterSpacing="-0.5px" color="#eaedf2" mb={1.5}>
           Kabinen-Bar

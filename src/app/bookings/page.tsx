@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
 import { LoadingState } from "@/components/LoadingState";
+import { AppBar } from "@/components/AppBar";
 
 interface PeriodRow {
   date: string;
@@ -49,7 +50,7 @@ export default function ProfilePage() {
       setPlayer(name);
     });
 
-    fetch("/api/profile")
+    fetch("/api/bookings")
       .then((r) => r.json())
       .then((data) => setPeriods(data.periods ?? []))
       .catch(() => {})
@@ -61,30 +62,10 @@ export default function ProfilePage() {
   const pendingPeriods = periods.filter((p) => p.status === PROFILE_STATUS.PENDING);
   const totalOwed     = (activePeriod?.total_cents ?? 0) + pendingPeriods.reduce((s, p) => s + p.total_cents, 0);
 
-  async function logout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push(ROUTES.LOGIN);
-  }
-
   return (
     <Flex minH="100dvh" bg="#0d1014" flexDir="column">
 
-      {/* Header */}
-      <Flex
-        as="header"
-        alignItems="center"
-        justifyContent="space-between"
-        px={5}
-        py="14px"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
-      >
-        <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={() => router.push(ROUTES.HOME)}>
-          <ChevronLeft size={20} color="#eaedf2" />
-        </Box>
-        <Text fontSize="17px" fontWeight="700" color="#eaedf2">Mein Konto</Text>
-        <Box w="36px" />
-      </Flex>
+      <AppBar title="Buchungen" showBack />
 
       <Box flex={1} overflowY="auto" px={5} pt={5}>
 
@@ -244,30 +225,6 @@ export default function ProfilePage() {
         })}
           </>
         )}
-      </Box>
-
-      {/* Logout */}
-      <Box px={5} pb={8} pt={4}>
-        <Box
-          as="button"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          gap={2}
-          w="full"
-          h="52px"
-          borderRadius="12px"
-          bg="#e0535f"
-          color="white"
-          fontSize="16px"
-          fontWeight="700"
-          border="none"
-          cursor="pointer"
-          onClick={logout}
-        >
-          <LogOut size={16} />
-          Ausloggen
-        </Box>
       </Box>
     </Flex>
   );
