@@ -19,3 +19,26 @@ export async function GET() {
     isAdmin: player.isAdmin,
   });
 }
+
+/** PATCH { name } → updates the current player's display name. */
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
+
+  const { name } = await request.json();
+  const trimmed = typeof name === "string" ? name.trim() : "";
+  if (!trimmed) return NextResponse.json({ error: API_ERROR.NAME_REQUIRED }, { status: 400 });
+
+  const player = await prisma.player.update({
+    where: { id: user.id },
+    data: { name: trimmed },
+  });
+
+  return NextResponse.json({
+    id: player.id,
+    name: player.name,
+    isAdmin: player.isAdmin,
+  });
+}

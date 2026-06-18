@@ -14,6 +14,8 @@ interface AppBarProps {
   subtitle?: string;
   /** Show a back chevron that returns to the home screen. */
   showBack?: boolean;
+  /** Custom back handler (e.g. to guard unsaved changes). Defaults to routing home. */
+  onBack?: () => void;
 }
 
 /**
@@ -21,7 +23,7 @@ interface AppBarProps {
  * with a dropdown menu (Buchungen · [Admin Console] · Konto verwalten ·
  * Ausloggen) on the right. The Admin Console entry only shows for admins.
  */
-export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false }: AppBarProps) {
+export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false, onBack }: AppBarProps) {
   const router = useRouter();
   const [player, setPlayer] = useState("");
   const [email, setEmail] = useState("");
@@ -73,7 +75,7 @@ export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false }: Ap
             cursor="pointer"
             bg="none"
             border="none"
-            onClick={() => router.push(ROUTES.HOME)}
+            onClick={() => (onBack ? onBack() : router.push(ROUTES.HOME))}
           >
             <ChevronLeft size={20} color="#eaedf2" />
           </Box>
@@ -223,7 +225,7 @@ export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false }: Ap
                 cursor="pointer"
                 textAlign="left"
                 _hover={{ bg: "#1b212b" }}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); router.push(ROUTES.ACCOUNT); }}
               >
                 <Settings size={17} color="#939dab" />
                 <Text fontSize="14px" color="#eaedf2">Konto verwalten</Text>

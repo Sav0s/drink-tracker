@@ -22,10 +22,11 @@ src/
 │   ├── login/             # Google OAuth login (players + admin — single login)
 │   ├── home/              # Drink logging (player) + billing modal when a period is closed
 │   ├── bookings/          # Billing history (player; renamed from /profile)
+│   ├── account/           # Konto verwalten — edit display name (player)
 │   ├── admin/              # Admin area (steel #6478a0)
 │   │   └── dashboard/     # Drink CRUD + billing (dedicated /admin/login no longer exists)
 │   ├── api/
-│   │   ├── me/                    # GET → { id, name, isAdmin }
+│   │   ├── me/                    # GET → { id, name, isAdmin } · PATCH { name } → rename player
 │   │   ├── home/                  # GET → drinks + balance + closedPeriod (player)
 │   │   ├── bookings/              # GET → billing periods (history) · POST/DELETE bookings
 │   │   └── admin/                 # drinks, billing-periods, billing-periods/[id]/members, payments
@@ -80,8 +81,9 @@ prisma/
 - `src/proxy.ts` active (route guards run; Next.js 16 renamed `middleware.ts` to `proxy.ts`). Also redirects the old `/profile` path to `/bookings`.
 - **Billing modal:** appears on `/home` when the player's most recently closed billing period still has an open payment (amount + payment instructions, or fallback text).
 - **Loading states:** `home`, `bookings`, and `admin/dashboard` (drinks and billing tabs, including the member list) show a spinner (`LoadingState`) during the initial fetch instead of `0,00 €`/empty lists.
-- **Shared `AppBar`** (`src/components/AppBar.tsx`): top bar with title + club logo on the left (the logo/title is clickable and routes to `/home`) and an account avatar with a dropdown menu on the right: Buchungen → `/bookings`, **Admin Console → `/admin/dashboard` (only shown when `/api/me` reports `isAdmin`)**, Konto verwalten (placeholder), Ausloggen. Used on `/home` (title "Kabinen-Bar"), `/bookings` (title "Buchungen", with back chevron), and the admin dashboard (`subtitle="Admin Console"`, so it reads "Kabinen-Bar · Admin Console" — the old admin badge + standalone logout button were removed in favour of this shared bar). The logo only shows on bars with the app name / no back arrow. Logout lives only in this menu now.
+- **Shared `AppBar`** (`src/components/AppBar.tsx`): top bar with title + club logo on the left (the logo/title is clickable and routes to `/home`) and an account avatar with a dropdown menu on the right: Buchungen → `/bookings`, **Admin Console → `/admin/dashboard` (only shown when `/api/me` reports `isAdmin`)**, Konto verwalten → `/account`, Ausloggen. Used on `/home` (title "Kabinen-Bar"), `/bookings` (title "Buchungen", with back chevron), and the admin dashboard (`subtitle="Admin Console"`, so it reads "Kabinen-Bar · Admin Console" — the old admin badge + standalone logout button were removed in favour of this shared bar). The logo only shows on bars with the app name / no back arrow. Logout lives only in this menu now.
 - **Player profile route renamed** `/profile` → `/bookings` (and API `/api/profile` folded into `GET /api/bookings`; POST on the same route still creates a booking).
+- **Konto verwalten screen** (`/account`): bookings-style top bar (back chevron via `AppBar` `onBack`), edits the player display name. Verwerfen/Speichern are inert + greyed until the name differs from the saved value, then colour up; Speichern persists via `PATCH /api/me`. Hitting back with unsaved changes opens a confirm modal (Hier bleiben / Verlassen).
 - **TSV Bobingen logo embedded** (`public/tsv-bobingen-logo.png`): shown in the `AppBar`, on the login screen, and as favicon/PWA icons (`favicon.ico`, `logo192.png`, `logo512.png`).
 - TypeScript is clean (`npx tsc --noEmit`). The previously-known Chakra polymorphic-typing errors in `admin/dashboard/page.tsx` are fixed by using Chakra's typed `Input`/`Textarea`/`Image` components instead of `Box as="input"/"textarea"/"img"`.
 
