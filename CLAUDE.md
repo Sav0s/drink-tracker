@@ -21,14 +21,13 @@ src/
 ├── app/
 │   ├── login/             # Google OAuth login (players + admin — single login)
 │   ├── home/              # Drink logging (player) + billing modal when a period is closed
-│   ├── profile/           # History + logout (player)
+│   ├── bookings/          # Billing history (player; renamed from /profile)
 │   ├── admin/              # Admin area (steel #6478a0)
 │   │   └── dashboard/     # Drink CRUD + billing (dedicated /admin/login no longer exists)
 │   ├── api/
 │   │   ├── me/                    # GET → { id, name, isAdmin }
 │   │   ├── home/                  # GET → drinks + balance + closedPeriod (player)
-│   │   ├── bookings/              # POST/DELETE bookings
-│   │   ├── profile/                # GET → billing periods (player)
+│   │   ├── bookings/              # GET → billing periods (history) · POST/DELETE bookings
 │   │   └── admin/                 # drinks, billing-periods, billing-periods/[id]/members, payments
 │   ├── auth/callback/     # Next.js auth callback route — checks player.isAdmin, redirects
 │   │                       # admins to /admin/dashboard, others to /home (or to `next`)
@@ -36,6 +35,7 @@ src/
 │   ├── page.tsx           # Redirect → /login
 │   └── globals.css
 ├── components/
+│   ├── AppBar.tsx         # Shared top bar: title + logo + account dropdown menu
 │   ├── LoadingState.tsx   # Centered spinner for not-yet-loaded data (instead of 0,00 €/empty)
 │   └── ui/
 │       └── provider.tsx   # Chakra ChakraProvider wrapper
@@ -76,12 +76,14 @@ prisma/
 - All screens implemented — fully with Chakra UI style props (no Tailwind, no `style={}` objects)
 - **Single login:** `/admin/login` has been removed. Players and admins both sign in via `/login` with Google OAuth; `auth/callback` checks `player.isAdmin` from the DB and redirects to `/home` or `/admin/dashboard` accordingly. The admin dashboard page also checks `isAdmin` itself against `/api/me` and redirects non-admins to `/home`.
 - **Prisma schema created + migration applied** (`20260614144754_init`). Admin user "Fabian Hauser" in DB (`is_admin = true`).
-- **Backend connected:** home/profile/admin-dashboard use real Prisma queries via API routes (`/api/home`, `/api/bookings`, `/api/profile`, `/api/admin/*`) instead of mock data. Old mock data lives as fixtures in `prisma/fixtures/`.
-- `src/proxy.ts` active (route guards run; Next.js 16 renamed `middleware.ts` to `proxy.ts`)
+- **Backend connected:** home/bookings/admin-dashboard use real Prisma queries via API routes (`/api/home`, `/api/bookings`, `/api/admin/*`) instead of mock data. Old mock data lives as fixtures in `prisma/fixtures/`.
+- `src/proxy.ts` active (route guards run; Next.js 16 renamed `middleware.ts` to `proxy.ts`). Also redirects the old `/profile` path to `/bookings`.
 - **Billing modal:** appears on `/home` when the player's most recently closed billing period still has an open payment (amount + payment instructions, or fallback text).
-- **Loading states:** `home`, `profile`, and `admin/dashboard` (drinks and billing tabs, including the member list) show a spinner (`LoadingState`) during the initial fetch instead of `0,00 €`/empty lists.
-- TSV Bobingen logo not yet embedded (lives in design assets)
-- 2 known, still-open TypeScript errors in `admin/dashboard/page.tsx`: `Box as="input" type=...` and `Box as="textarea" onChange=...` (Chakra polymorphic-typing issue, doesn't affect runtime behavior)
+- **Loading states:** `home`, `bookings`, and `admin/dashboard` (drinks and billing tabs, including the member list) show a spinner (`LoadingState`) during the initial fetch instead of `0,00 €`/empty lists.
+- **Shared `AppBar`** (`src/components/AppBar.tsx`): top bar with title + club logo on the left and an account avatar with a dropdown menu (Buchungen → `/bookings`, Konto verwalten (placeholder), Ausloggen) on the right. Used on `/home` (title "Kabinen-Bar"), `/bookings` (title "Buchungen", with back chevron), and the admin dashboard. The logo only shows on bars with the app name / no back arrow. Logout lives only in this menu now.
+- **Player profile route renamed** `/profile` → `/bookings` (and API `/api/profile` folded into `GET /api/bookings`; POST on the same route still creates a booking).
+- **TSV Bobingen logo embedded** (`public/tsv-bobingen-logo.png`): shown in the `AppBar`, on the login screen, and as favicon/PWA icons (`favicon.ico`, `logo192.png`, `logo512.png`).
+- TypeScript is clean (`npx tsc --noEmit`). The previously-known Chakra polymorphic-typing errors in `admin/dashboard/page.tsx` are fixed by using Chakra's typed `Input`/`Textarea`/`Image` components instead of `Box as="input"/"textarea"/"img"`.
 
 ## Backend
 
