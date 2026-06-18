@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Flex, Text, Input, Textarea, Image } from "@chakra-ui/react";
-import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
+import { Box, Flex, Text, Input, Textarea } from "@chakra-ui/react";
+import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { formatCents } from "@/types";
-import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PERIOD_STATUS, type PeriodStatus } from "@/lib/constants";
 import { LoadingState } from "@/components/LoadingState";
+import { AppBar } from "@/components/AppBar";
 
 interface DrinkRow {
   id: string;
@@ -103,7 +103,6 @@ export default function AdminDashboardPage() {
   const [showNew,    setShowNew]    = useState(false);
   const [periodOpen, setPeriodOpen] = useState(false);
   const periodPickerRef = useRef<HTMLDivElement>(null);
-  const [adminName,  setAdminName]  = useState("A");
   const [drinksLoaded,  setDrinksLoaded]  = useState(false);
   const [periodsLoaded, setPeriodsLoaded] = useState(false);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -117,10 +116,7 @@ export default function AdminDashboardPage() {
     fetch("/api/me")
       .then((r) => r.json())
       .then((player) => {
-        if (!player.isAdmin) { router.push(ROUTES.HOME); return; }
-        setAdminName(
-          player.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
-        );
+        if (!player.isAdmin) router.push(ROUTES.HOME);
       })
       .catch(() => router.push(ROUTES.LOGIN));
 
@@ -221,12 +217,6 @@ export default function AdminDashboardPage() {
     }).catch(() => {});
   }
 
-  async function logout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push(ROUTES.LOGIN);
-  }
-
   const paid     = members.filter((m) =>  m.paid).length;
   const offen    = members.filter((m) => !m.paid).length;
   const sumOffen = members.filter((m) => !m.paid).reduce((s, m) => s + m.total_cents, 0);
@@ -236,55 +226,7 @@ export default function AdminDashboardPage() {
     <Box minH="100dvh" bg="#0b0e13" color="#eaedf2">
 
       {/* Topbar */}
-      <Flex
-        as="header"
-        alignItems="center"
-        justifyContent="space-between"
-        px={7}
-        py="14px"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
-      >
-        <Flex alignItems="center" gap="10px">
-          <Image
-            src="/tsv-bobingen-logo.png"
-            alt="TSV Bobingen"
-            w="28px"
-            h="28px"
-            objectFit="contain"
-          />
-          <Text fontSize="17px" fontWeight="700" color="#eaedf2">
-            Kabinen-Bar{" "}
-            <Text as="span" color="#939dab" fontWeight="400">· Verwaltung</Text>
-          </Text>
-        </Flex>
-
-        <Flex alignItems="center" gap="10px">
-          <Flex
-            alignItems="center"
-            gap="6px"
-            px="10px"
-            py={1}
-            borderRadius="9999px"
-            bg="rgba(100,120,160,0.16)"
-            border="1px solid rgba(100,120,160,0.3)"
-            fontSize="12px"
-            fontWeight="600"
-            color="#6478a0"
-          >
-            Admin
-          </Flex>
-          <Flex
-            w="32px" h="32px" borderRadius="9999px" bg="#6478a0"
-            alignItems="center" justifyContent="center"
-            fontSize="13px" fontWeight="700" color="white"
-          >
-            {adminName}
-          </Flex>
-          <Box as="button" p="6px" cursor="pointer" bg="none" border="none" onClick={logout}>
-            <LogOut size={16} color="#5c6675" />
-          </Box>
-        </Flex>
-      </Flex>
+      <AppBar subtitle="Admin Console" />
 
       {/* Tabs */}
       <Flex borderBottom="1px solid rgba(255,255,255,0.07)" px={7}>

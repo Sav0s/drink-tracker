@@ -82,7 +82,7 @@ export default function ProfilePage() {
           </Flex>
           <Box>
             <Text fontSize="18px" fontWeight="700" color="#eaedf2" mb="2px">{player}</Text>
-            <Text fontSize="13px" color="#939dab">Mitglied · 1. Mannschaft</Text>
+            <Text fontSize="13px" color="#939dab">Mitglied</Text>
           </Box>
         </Flex>
 
