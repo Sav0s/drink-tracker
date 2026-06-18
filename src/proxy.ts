@@ -30,6 +30,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Redirect the old /profile path to its new home at /bookings (renamed route).
+  if (pathname === "/profile" || pathname.startsWith("/profile/")) {
+    return NextResponse.redirect(new URL(ROUTES.BOOKINGS, request.url));
+  }
+
   // Redirect unauthenticated users to login
   const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
 

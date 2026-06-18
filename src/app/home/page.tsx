@@ -6,8 +6,9 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check } from "lucide-react";
 import { formatCents } from "@/types";
-import { ROUTES, DEFAULT_PLAYER_NAME, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
+import { ROUTES, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
 import { LoadingState } from "@/components/LoadingState";
+import { AppBar } from "@/components/AppBar";
 
 interface DrinkState {
   id: string;
@@ -63,7 +64,6 @@ function Strichliste({ count }: { count: number }) {
 
 export default function HauptseiteePage() {
   const router = useRouter();
-  const [player,    setPlayer]    = useState<string>("");
   const [drinks,    setDrinks]    = useState<DrinkState[]>([]);
   const [toast,     setToast]     = useState<Toast | null>(null);
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -74,13 +74,7 @@ export default function HauptseiteePage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push(ROUTES.LOGIN); return; }
-      const name =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name     ||
-        user.email?.split("@")[0]    ||
-        DEFAULT_PLAYER_NAME;
-      setPlayer(name);
+      if (!user) router.push(ROUTES.LOGIN);
     });
 
     fetch("/api/home")
@@ -133,38 +127,10 @@ export default function HauptseiteePage() {
     fetch(`/api/bookings/last?drinkId=${drinkId}`, { method: "DELETE" }).catch(() => {});
   }
 
-  const initials = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-
   return (
     <Box minH="100dvh" bg="#0d1014" pb="80px" position="relative">
 
-      {/* App bar */}
-      <Flex
-        as="header"
-        alignItems="center"
-        justifyContent="space-between"
-        px={5}
-        py="14px"
-        borderBottom="1px solid rgba(255,255,255,0.07)"
-      >
-        <Text fontSize="17px" fontWeight="700" color="#eaedf2">Kabinen-Bar</Text>
-        <Box
-          as="button"
-          bg="none"
-          border="none"
-          cursor="pointer"
-          p={0}
-          onClick={() => router.push(ROUTES.PROFILE)}
-        >
-          <Flex
-            w="36px" h="36px" borderRadius="9999px" bg="#0468b3"
-            alignItems="center" justifyContent="center"
-            fontSize="13px" fontWeight="700" color="white"
-          >
-            {initials}
-          </Flex>
-        </Box>
-      </Flex>
+      <AppBar />
 
       {loading ? (
         <LoadingState minH="320px" />

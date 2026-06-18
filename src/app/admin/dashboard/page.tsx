@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, Input, Textarea, Image } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, LogOut } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -70,8 +70,7 @@ function FieldInput({
   type?: string;
 }) {
   return (
-    <Box
-      as="input"
+    <Input
       type={type}
       placeholder={placeholder}
       value={value}
@@ -246,7 +245,13 @@ export default function AdminDashboardPage() {
         borderBottom="1px solid rgba(255,255,255,0.07)"
       >
         <Flex alignItems="center" gap="10px">
-          <Text as="span" fontSize="24px">⚽</Text>
+          <Image
+            src="/tsv-bobingen-logo.png"
+            alt="TSV Bobingen"
+            w="28px"
+            h="28px"
+            objectFit="contain"
+          />
           <Text fontSize="17px" fontWeight="700" color="#eaedf2">
             Kabinen-Bar{" "}
             <Text as="span" color="#939dab" fontWeight="400">· Verwaltung</Text>
@@ -539,8 +544,7 @@ export default function AdminDashboardPage() {
                 >
                   Zahlungshinweise
                 </Text>
-                <Box
-                  as="textarea"
+                <Textarea
                   rows={3}
                   placeholder="IBAN, PayPal, Empfänger…"
                   value={payNote}
