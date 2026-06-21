@@ -41,14 +41,13 @@ export default function ProfilePage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push(ROUTES.LOGIN); return; }
-      const name =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name      ||
-        user.email?.split("@")[0]     ||
-        DEFAULT_PLAYER_NAME;
-      setPlayer(name);
+      if (!user) router.push(ROUTES.LOGIN);
     });
+
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((me) => setPlayer(me?.name || DEFAULT_PLAYER_NAME))
+      .catch(() => {});
 
     fetch("/api/bookings")
       .then((r) => r.json())
