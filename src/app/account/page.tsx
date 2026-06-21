@@ -71,120 +71,134 @@ export default function AccountPage() {
     <Flex minH="100dvh" bg="#0d1014" flexDir="column">
       <AppBar title="Konto verwalten" showBack onBack={handleBack} />
 
-      <Box flex={1} overflowY="auto" px={5} pt={6}>
-        {loading ? (
-          <LoadingState minH="320px" />
-        ) : (
-          <>
-            {/* Profile head */}
-            <Flex flexDir="column" alignItems="center" mb={9}>
-              <Flex
-                w="88px" h="88px" borderRadius="9999px"
-                bg="linear-gradient(135deg, #0468b3, #0576cc)"
-                alignItems="center" justifyContent="center"
-                fontSize="30px" fontWeight="800" color="white"
-                mb={4}
-                boxShadow="0 10px 30px -10px rgba(4,104,179,0.7)"
-              >
-                {initials}
+      <Box flex={1} overflowY="auto">
+        <Box w="full" maxW="440px" mx="auto" px={5} pt={10} pb={8}>
+          {loading ? (
+            <LoadingState minH="320px" />
+          ) : (
+            <>
+              {/* Profile head */}
+              <Flex flexDir="column" alignItems="center" mb={8}>
+                <Flex
+                  w="80px" h="80px" borderRadius="9999px"
+                  bg="linear-gradient(135deg, #0468b3, #0576cc)"
+                  alignItems="center" justifyContent="center"
+                  fontSize="28px" fontWeight="800" color="white"
+                  mb={4}
+                  boxShadow="0 10px 30px -10px rgba(4,104,179,0.7)"
+                >
+                  {initials}
+                </Flex>
+                <Text fontSize="20px" fontWeight="800" color="#eaedf2" mb="2px">{originalName}</Text>
+                <Text fontSize="13px" color="#939dab">Mitglied</Text>
               </Flex>
-              <Text fontSize="22px" fontWeight="800" color="#eaedf2" mb="2px">{originalName}</Text>
-              <Text fontSize="13px" color="#939dab">Mitglied</Text>
-            </Flex>
 
-            {/* Section label */}
-            <Text
-              fontSize="11px" fontWeight="700" letterSpacing="0.1em"
-              textTransform="uppercase" color="#5c6675" mb={3}
-            >
-              Anzeigename
-            </Text>
+              {/* Anzeigename card */}
+              <Text
+                fontSize="11px" fontWeight="700" letterSpacing="0.1em"
+                textTransform="uppercase" color="#5c6675" mb={2}
+              >
+                Anzeigename
+              </Text>
+              <Box
+                bg="#151a21"
+                border="1px solid rgba(255,255,255,0.07)"
+                borderRadius="16px"
+                p={5}
+              >
+                <Text
+                  fontSize="12px" fontWeight="600" letterSpacing="0.04em"
+                  textTransform="uppercase" color="#939dab" mb="8px"
+                >
+                  Dein Name
+                </Text>
 
-            {/* Field label */}
-            <Text
-              fontSize="12px" fontWeight="600" letterSpacing="0.04em"
-              textTransform="uppercase" color="#939dab" mb="8px"
-            >
-              Dein Name
-            </Text>
+                {/* Input with clear button */}
+                <Box position="relative">
+                  <Input
+                    value={name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                    placeholder="Dein Name"
+                    h="48px"
+                    w="full"
+                    bg="#1b212b"
+                    border="1px solid rgba(255,255,255,0.12)"
+                    borderRadius="10px"
+                    pl="14px"
+                    pr="44px"
+                    fontSize="15px"
+                    color="#eaedf2"
+                    outline="none"
+                    _focus={{ borderColor: "#0468b3" }}
+                  />
+                  {name && (
+                    <Box
+                      as="button"
+                      position="absolute"
+                      right="12px"
+                      top="50%"
+                      transform="translateY(-50%)"
+                      bg="none"
+                      border="none"
+                      cursor="pointer"
+                      p="2px"
+                      onClick={() => setName("")}
+                      aria-label="Name leeren"
+                    >
+                      <X size={18} color="#5c6675" />
+                    </Box>
+                  )}
+                </Box>
 
-            {/* Input with clear button */}
-            <Box position="relative">
-              <Input
-                value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                placeholder="Dein Name"
-                h="52px"
-                w="full"
-                bg="#1b212b"
-                border="1px solid rgba(255,255,255,0.12)"
-                borderRadius="12px"
-                pl="14px"
-                pr="44px"
-                fontSize="16px"
-                color="#eaedf2"
-                outline="none"
-                _focus={{ borderColor: "#0468b3" }}
-              />
-              {name && (
+                <Text fontSize="13px" color="#5c6675" mt="10px">
+                  So erscheinst du in der Spielerliste und in der Abrechnung.
+                </Text>
+              </Box>
+
+              {/* Action buttons */}
+              <Flex gap={3} mt={6} justifyContent="flex-end">
                 <Box
                   as="button"
-                  position="absolute"
-                  right="12px"
-                  top="50%"
-                  transform="translateY(-50%)"
-                  bg="none"
-                  border="none"
-                  cursor="pointer"
-                  p="2px"
-                  onClick={() => setName("")}
-                  aria-label="Name leeren"
+                  minW="120px"
+                  h="44px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  transition="background 0.12s, border-color 0.12s, color 0.12s"
+                  cursor={canDiscard ? "pointer" : "default"}
+                  bg="transparent"
+                  color={canDiscard ? "#eaedf2" : "#4b5563"}
+                  border={canDiscard ? "1px solid rgba(255,255,255,0.18)" : "1px solid rgba(255,255,255,0.06)"}
+                  _hover={canDiscard ? { bg: "#1b212b" } : undefined}
+                  onClick={() => canDiscard && setName(originalName)}
                 >
-                  <X size={18} color="#5c6675" />
+                  Verwerfen
                 </Box>
-              )}
-            </Box>
-
-            <Text fontSize="13px" color="#5c6675" mt="10px">
-              So erscheinst du in der Spielerliste und in der Abrechnung.
-            </Text>
-          </>
-        )}
+                <Box
+                  as="button"
+                  minW="140px"
+                  h="44px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  border="none"
+                  transition="background 0.12s, color 0.12s"
+                  cursor={canSave ? "pointer" : "default"}
+                  bg={canSave ? "#0468b3" : "#1b212b"}
+                  color={canSave ? "white" : "#4b5563"}
+                  boxShadow={canSave ? "0 8px 20px -8px rgba(4,104,179,0.7)" : "none"}
+                  _hover={canSave ? { bg: "#0576cc" } : undefined}
+                  onClick={save}
+                >
+                  {saving ? "Speichern…" : "Speichern"}
+                </Box>
+              </Flex>
+            </>
+          )}
+        </Box>
       </Box>
-
-      {/* Action buttons */}
-      <Flex gap={3} px={5} pb={8} pt={4}>
-        <Box
-          as="button"
-          flex={1}
-          h="52px"
-          borderRadius="12px"
-          fontSize="16px"
-          fontWeight="700"
-          cursor={canDiscard ? "pointer" : "default"}
-          bg={canDiscard ? "#1b212b" : "#151a21"}
-          color={canDiscard ? "#eaedf2" : "#5c6675"}
-          border={canDiscard ? "1px solid rgba(255,255,255,0.16)" : "1px solid rgba(255,255,255,0.06)"}
-          onClick={() => canDiscard && setName(originalName)}
-        >
-          Verwerfen
-        </Box>
-        <Box
-          as="button"
-          flex={1}
-          h="52px"
-          borderRadius="12px"
-          fontSize="16px"
-          fontWeight="700"
-          border="none"
-          cursor={canSave ? "pointer" : "default"}
-          bg={canSave ? "#0468b3" : "#1b212b"}
-          color={canSave ? "white" : "#5c6675"}
-          onClick={save}
-        >
-          {saving ? "Speichern…" : "Speichern"}
-        </Box>
-      </Flex>
 
       {/* Unsaved-changes leave confirmation */}
       {showLeave && (
