@@ -19,7 +19,7 @@ Next.js 16 App Router app for the TSV Bobingen Kabinen-Bar. Two user groups: pla
 ```
 src/
 ├── app/
-│   ├── login/             # Google OAuth login (players + admin — single login)
+│   ├── login/             # Login (single, players + admin): Google OAuth + email magic link
 │   ├── home/              # Drink logging (player) + billing modal when a period is closed
 │   ├── bookings/          # Billing history (player; renamed from /profile)
 │   ├── account/           # Konto verwalten — edit display name (player)
@@ -97,7 +97,7 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-Auth flow: Google OAuth (always via `/login`) → `/auth/callback` → reads `player.isAdmin` from the DB → redirects to `/admin/dashboard` (admin) or `/home` (player). There is no separate admin login anymore.
+Auth flow: from `/login` either Google OAuth or an email magic link (`signInWithOtp`, `emailRedirectTo` → `/auth/callback`). Both land on `/auth/callback`, which exchanges the code, upserts the `player` row (seeding the name from Google metadata or the email prefix on first login), reads `player.isAdmin`, then redirects to `/admin/dashboard` (admin) or `/home` (player). There is no separate admin login anymore.
 Clients: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server/RSC).
 
 ### Prisma + PostgreSQL
