@@ -1,9 +1,17 @@
 "use client";
 
-import { Box, Flex, Text, Image } from "@chakra-ui/react";
+import { useState } from "react";
+import { Box, Flex, Text, Input, Image } from "@chakra-ui/react";
+import { Mail, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [error, setError] = useState("");
+
   async function handleGoogleLogin() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
@@ -12,6 +20,31 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+  }
+
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) {
+      setStatus("error");
+      setError("Bitte gib eine gültige E-Mail-Adresse ein.");
+      return;
+    }
+    setStatus("sending");
+    setError("");
+
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+
+    if (otpError) {
+      setStatus("error");
+      setError("Senden fehlgeschlagen. Bitte versuche es erneut.");
+    } else {
+      setStatus("sent");
+    }
   }
 
   return (
@@ -33,31 +66,125 @@ export default function LoginPage() {
           Getränke-Tracker · TSV Bobingen
         </Text>
 
-        <Box
-          as="button"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          gap={3}
-          bg="white"
-          color="#1a1a1a"
-          border="none"
-          borderRadius="12px"
-          h="52px"
-          fontSize="15px"
-          fontWeight="600"
-          cursor="pointer"
-          w="full"
-          mb={4}
-          onClick={handleGoogleLogin}
-        >
-          <GoogleIcon />
-          Mit Google anmelden
-        </Box>
+        {status === "sent" ? (
+          /* Magic-link confirmation */
+          <Flex
+            flexDir="column"
+            alignItems="center"
+            textAlign="center"
+            w="full"
+            bg="#151a21"
+            border="1px solid rgba(255,255,255,0.07)"
+            borderRadius="16px"
+            px={5}
+            py={7}
+          >
+            <CheckCircle2 size={40} color="#2fa968" />
+            <Text fontSize="17px" fontWeight="700" color="#eaedf2" mt={3} mb={1}>
+              Login-Link gesendet
+            </Text>
+            <Text fontSize="14px" color="#939dab" mb={5}>
+              Wir haben dir einen Link an <Text as="span" color="#eaedf2">{email.trim()}</Text> geschickt.
+              Öffne ihn auf diesem Gerät, um dich anzumelden.
+            </Text>
+            <Box
+              as="button"
+              bg="none"
+              border="none"
+              cursor="pointer"
+              color="#0468b3"
+              fontSize="14px"
+              fontWeight="600"
+              onClick={() => { setStatus("idle"); setError(""); }}
+            >
+              Andere E-Mail verwenden
+            </Box>
+          </Flex>
+        ) : (
+          <>
+            <Box
+              as="button"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              gap={3}
+              bg="white"
+              color="#1a1a1a"
+              border="none"
+              borderRadius="12px"
+              h="52px"
+              fontSize="15px"
+              fontWeight="600"
+              cursor="pointer"
+              w="full"
+              onClick={handleGoogleLogin}
+            >
+              <GoogleIcon />
+              Mit Google anmelden
+            </Box>
 
-        <Text fontSize="12px" color="#5c6675" textAlign="center">
-          Dein Google-Name wird als Anzeigename verwendet.
-        </Text>
+            {/* Divider */}
+            <Flex alignItems="center" w="full" gap={3} my={5}>
+              <Box flex={1} h="1px" bg="rgba(255,255,255,0.1)" />
+              <Text fontSize="12px" color="#5c6675">oder</Text>
+              <Box flex={1} h="1px" bg="rgba(255,255,255,0.1)" />
+            </Flex>
+
+            {/* Magic-link form */}
+            <Flex as="form" flexDir="column" w="full" gap={3} onSubmit={handleMagicLink}>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setEmail(e.target.value);
+                  if (status === "error") { setStatus("idle"); setError(""); }
+                }}
+                placeholder="deine@email.de"
+                h="52px"
+                w="full"
+                bg="#1b212b"
+                border="1px solid rgba(255,255,255,0.12)"
+                borderRadius="12px"
+                px="14px"
+                fontSize="15px"
+                color="#eaedf2"
+                outline="none"
+                _focus={{ borderColor: "#0468b3" }}
+                _placeholder={{ color: "#5c6675" }}
+              />
+
+              {status === "error" && (
+                <Text fontSize="13px" color="#e0535f">{error}</Text>
+              )}
+
+              <Box
+                as="button"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap={2}
+                bg="#0468b3"
+                color="white"
+                border="none"
+                borderRadius="12px"
+                h="52px"
+                fontSize="15px"
+                fontWeight="700"
+                cursor={status === "sending" ? "default" : "pointer"}
+                w="full"
+                opacity={status === "sending" ? 0.7 : 1}
+                _hover={status === "sending" ? undefined : { bg: "#0576cc" }}
+              >
+                <Mail size={18} />
+                {status === "sending" ? "Wird gesendet…" : "Login-Link senden"}
+              </Box>
+            </Flex>
+
+            <Text fontSize="12px" color="#5c6675" textAlign="center" mt={6}>
+              Beim ersten Login wird automatisch ein Konto erstellt.
+            </Text>
+          </>
+        )}
       </Flex>
     </Flex>
   );
