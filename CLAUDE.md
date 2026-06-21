@@ -110,4 +110,4 @@ Schema in `prisma/schema.prisma`. Adapter: `@prisma/adapter-pg`.
 Tables: `players`, `drinks`, `billing_periods`, `bookings`, `payments`.
 Migration already applied. Prices always as **integer cents**.
 
-API route: `GET /api/me` → returns `{ id, name, isAdmin }` (Supabase user → Prisma player lookup).
+API route: `GET /api/me` → returns `{ id, name, isAdmin }` (Supabase user → Prisma player lookup). `PATCH /api/me { name }` renames the player. The app shows the **DB `player.name`** everywhere (AppBar avatar, bookings header, account screen) — the Google `user_metadata` name is only used by `auth/callback` to seed the player record on first login.

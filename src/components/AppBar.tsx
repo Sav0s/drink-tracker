@@ -33,19 +33,15 @@ export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false, onBa
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      const name =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
-        DEFAULT_PLAYER_NAME;
-      setPlayer(name);
-      setEmail(user.email ?? "");
+      setEmail(user?.email ?? "");
     });
 
     fetch("/api/me")
       .then((r) => r.json())
-      .then((me) => setIsAdmin(Boolean(me?.isAdmin)))
+      .then((me) => {
+        setPlayer(me?.name || DEFAULT_PLAYER_NAME);
+        setIsAdmin(Boolean(me?.isAdmin));
+      })
       .catch(() => {});
   }, []);
 
