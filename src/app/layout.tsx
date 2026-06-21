@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Provider } from "@/components/ui/provider";
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="de" className={inter.variable} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Provider>{children}</Provider>
+        <Analytics />
       </body>
     </html>
   );
