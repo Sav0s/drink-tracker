@@ -60,8 +60,17 @@ export async function GET() {
 
   const closedPeriod = await getUnpaidClosedPeriod(player.id);
 
+  // First-visit welcome: true until the player completes it (sets onboarded_at).
+  // Raw SQL so this compiles before `prisma generate` adds the new column.
+  const onboardRows = await prisma.$queryRaw<{ onboarded_at: Date | null }[]>`
+    SELECT onboarded_at FROM players WHERE id = ${player.id}
+  `;
+  const firstVisit = onboardRows[0]?.onboarded_at == null;
+
   return NextResponse.json({
     periodId: period?.id ?? null,
+    playerName: player.name,
+    firstVisit,
     drinks: drinks.map((d) => ({
       id: d.id,
       name: d.name,

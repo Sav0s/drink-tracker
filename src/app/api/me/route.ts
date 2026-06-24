@@ -20,14 +20,14 @@ export async function GET() {
   });
 }
 
-/** PATCH { name } → updates the current player's display name. */
+/** PATCH { name, onboarded? } → updates the display name; marks the first-visit welcome done. */
 export async function PATCH(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
 
-  const { name } = await request.json();
+  const { name, onboarded } = await request.json();
   const trimmed = typeof name === "string" ? name.trim() : "";
   if (!trimmed) return NextResponse.json({ error: API_ERROR.NAME_REQUIRED }, { status: 400 });
 
@@ -35,6 +35,12 @@ export async function PATCH(request: Request) {
     where: { id: user.id },
     data: { name: trimmed },
   });
+
+  // Mark the first-visit welcome as completed (only the first time).
+  // Raw SQL so this compiles before `prisma generate` adds the new column.
+  if (onboarded === true) {
+    await prisma.$executeRaw`UPDATE players SET onboarded_at = now() WHERE id = ${user.id} AND onboarded_at IS NULL`;
+  }
 
   return NextResponse.json({
     id: player.id,
