@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Check, RotateCcw } from "lucide-react";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
@@ -55,6 +55,18 @@ export default function ProfilePage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function setPaid(periodId: string, paid: boolean) {
+    await fetch("/api/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ periodId, paid }),
+    }).catch(() => {});
+    fetch("/api/bookings")
+      .then((r) => r.json())
+      .then((data) => setPeriods(data.periods ?? []))
+      .catch(() => {});
+  }
 
   const initials      = player.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   const activePeriod  = periods.find((p) => p.status === PROFILE_STATUS.ACTIVE);
@@ -217,6 +229,68 @@ export default function ProfilePage() {
                       <Text as="span" fontSize="13px" color="#939dab">{formatCents(row.price_cents)}</Text>
                     </Flex>
                   ))}
+
+                  {/* Payment toolbar (not for the still-running period) */}
+                  {period.status !== PROFILE_STATUS.ACTIVE && (
+                    <Flex
+                      alignItems="center"
+                      justifyContent="space-between"
+                      gap={3}
+                      pt={3}
+                      mt={1}
+                      borderTop="1px solid rgba(255,255,255,0.1)"
+                    >
+                      {period.status === PROFILE_STATUS.PAID ? (
+                        <>
+                          <Flex as="span" alignItems="center" gap="6px" fontSize="13px" color="#2fa968">
+                            <Check size={15} /> Als bezahlt markiert
+                          </Flex>
+                          <Box
+                            as="button"
+                            display="flex"
+                            alignItems="center"
+                            gap="6px"
+                            bg="none"
+                            border="1px solid rgba(255,255,255,0.14)"
+                            borderRadius="9px"
+                            px={3}
+                            py="7px"
+                            fontSize="13px"
+                            fontWeight="600"
+                            color="#939dab"
+                            cursor="pointer"
+                            _hover={{ color: "#eaedf2", borderColor: "rgba(255,255,255,0.28)" }}
+                            onClick={() => setPaid(period.id, false)}
+                          >
+                            <RotateCcw size={14} /> Zurücksetzen
+                          </Box>
+                        </>
+                      ) : (
+                        <>
+                          <Text as="span" fontSize="13px" color="#d6a23a">Noch offen</Text>
+                          <Box
+                            as="button"
+                            display="flex"
+                            alignItems="center"
+                            gap="6px"
+                            bg="#0468b3"
+                            border="none"
+                            borderRadius="9px"
+                            px={4}
+                            py="8px"
+                            fontSize="13px"
+                            fontWeight="700"
+                            color="white"
+                            cursor="pointer"
+                            _hover={{ bg: "#0576cc" }}
+                            onClick={() => setPaid(period.id, true)}
+                          >
+                            <Check size={15} /> Ich hab bezahlt
+                          </Box>
+                        </>
+                      )}
+                    </Flex>
+                  )}
                 </Box>
               )}
             </Box>

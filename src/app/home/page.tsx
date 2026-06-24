@@ -114,6 +114,16 @@ export default function HauptseiteePage() {
 
   const saldo = drinks.reduce((sum, d) => sum + d.count * d.price_cents, 0);
 
+  function markClosedPeriodPaid() {
+    if (!closedPeriodNotice) return;
+    fetch("/api/payments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ periodId: closedPeriodNotice.id, paid: true }),
+    }).catch(() => {});
+    setClosedPeriodNotice(null);
+  }
+
   const bookDrink = useCallback(
     (drink: DrinkState) => {
       setDrinks((prev) =>
@@ -428,24 +438,46 @@ export default function HauptseiteePage() {
                 </Text>
               )}
             </Box>
-            <Box
-              as="button"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              w="full"
-              h="52px"
-              borderRadius="12px"
-              bg="#0468b3"
-              color="white"
-              fontSize="16px"
-              fontWeight="700"
-              border="none"
-              cursor="pointer"
-              onClick={() => setClosedPeriodNotice(null)}
-            >
-              Verstanden
-            </Box>
+            <Flex gap={3}>
+              <Box
+                as="button"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                flex={1}
+                h="52px"
+                borderRadius="12px"
+                bg="#e0535f"
+                color="white"
+                fontSize="16px"
+                fontWeight="700"
+                border="none"
+                cursor="pointer"
+                _hover={{ bg: "#cf4a55" }}
+                onClick={() => setClosedPeriodNotice(null)}
+              >
+                Später
+              </Box>
+              <Box
+                as="button"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                flex={1}
+                h="52px"
+                borderRadius="12px"
+                bg="#0468b3"
+                color="white"
+                fontSize="16px"
+                fontWeight="700"
+                border="none"
+                cursor="pointer"
+                _hover={{ bg: "#0576cc" }}
+                onClick={markClosedPeriodPaid}
+              >
+                Ich hab bezahlt
+              </Box>
+            </Flex>
           </Box>
         </>
       )}
