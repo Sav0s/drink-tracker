@@ -112,6 +112,12 @@ export default function AdminDashboardPage() {
   const [endDate,   setEndDate]   = useState("");
   const [payNote,   setPayNote]   = useState("");
 
+  // Edit-drink modal
+  const [editDrink,  setEditDrink]  = useState<DrinkRow | null>(null);
+  const [editName,   setEditName]   = useState("");
+  const [editPrice,  setEditPrice]  = useState("");
+  const [editActive, setEditActive] = useState(true);
+
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
@@ -184,6 +190,27 @@ export default function AdminDashboardPage() {
       .then(() => reloadDrinks())
       .catch(() => {});
     setNewName(""); setNewPrice(""); setNewActive(true);
+  }
+
+  function openEdit(d: DrinkRow) {
+    setEditDrink(d);
+    setEditName(d.name);
+    setEditPrice((d.price_cents / 100).toFixed(2).replace(".", ","));
+    setEditActive(d.active);
+  }
+
+  function saveEdit() {
+    if (!editDrink) return;
+    const price = Math.round(parseFloat(editPrice.replace(",", ".")) * 100);
+    if (!editName.trim() || Number.isNaN(price)) return;
+    fetch(`/api/admin/drinks/${editDrink.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim(), price_cents: price, active: editActive }),
+    })
+      .then(() => reloadDrinks())
+      .catch(() => {});
+    setEditDrink(null);
   }
 
   function createPeriod() {
@@ -313,7 +340,7 @@ export default function AdminDashboardPage() {
                     </Text>
                   </Flex>
                   <Box w="60px">
-                    <Box as="button" p={1} cursor="pointer" bg="none" border="none">
+                    <Box as="button" p={1} cursor="pointer" bg="none" border="none" onClick={() => openEdit(d)}>
                       <Pencil size={14} color="#6478a0" />
                     </Box>
                   </Box>
@@ -706,6 +733,98 @@ export default function AdminDashboardPage() {
           </Box>
         )}
       </Box>
+
+      {/* Edit-drink modal */}
+      {editDrink && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.65)"
+            zIndex={200}
+            onClick={() => setEditDrink(null)}
+          />
+          <Flex
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            alignItems="center"
+            justifyContent="center"
+            px={5}
+            zIndex={201}
+          >
+            <Box
+              w="full"
+              maxW="380px"
+              bg="#141921"
+              border="1px solid rgba(255,255,255,0.1)"
+              borderRadius="16px"
+              p={5}
+              boxShadow="0 16px 40px -12px rgba(0,0,0,0.7)"
+            >
+              <Text fontSize="17px" fontWeight="700" color="#eaedf2" mb={4}>
+                Getränk bearbeiten
+              </Text>
+
+              <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                Name
+              </Text>
+              <Box mb={4}>
+                <FieldInput placeholder="Name" value={editName} onChange={setEditName} />
+              </Box>
+
+              <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                Preis (€)
+              </Text>
+              <Box mb={4}>
+                <FieldInput placeholder="1,50" value={editPrice} onChange={setEditPrice} />
+              </Box>
+
+              <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                Status
+              </Text>
+              <Flex alignItems="center" gap={2} mb={6}>
+                <Toggle on={editActive} onChange={setEditActive} />
+                <Text fontSize="13px" color={editActive ? "#2fa968" : "#5a6473"}>
+                  {editActive ? "Aktiv" : "Inaktiv"}
+                </Text>
+              </Flex>
+
+              <Flex gap={3} justifyContent="flex-end">
+                <Box
+                  as="button"
+                  h="42px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  bg="transparent"
+                  color="#939dab"
+                  border="1px solid rgba(255,255,255,0.16)"
+                  cursor="pointer"
+                  onClick={() => setEditDrink(null)}
+                >
+                  Abbrechen
+                </Box>
+                <Box
+                  as="button"
+                  h="42px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  bg="#6478a0"
+                  color="white"
+                  border="none"
+                  cursor="pointer"
+                  onClick={saveEdit}
+                >
+                  Speichern
+                </Box>
+              </Flex>
+            </Box>
+          </Flex>
+        </>
+      )}
     </Box>
   );
 }
