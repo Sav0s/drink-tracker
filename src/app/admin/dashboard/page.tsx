@@ -29,6 +29,7 @@ interface PeriodRow {
   id: string;
   range: string;
   status: PeriodStatus;
+  paymentInstructions: string | null;
 }
 
 /* ─── Toggle ─── */
@@ -211,6 +212,16 @@ export default function AdminDashboardPage() {
       .then(() => reloadDrinks())
       .catch(() => {});
     setEditDrink(null);
+  }
+
+  function openNewPeriod() {
+    // When opening the form, default the payment instructions to the most recent
+    // period that has them (so the admin doesn't retype them every time).
+    if (!showNew && !payNote) {
+      const last = periods.find((p) => p.paymentInstructions);
+      if (last?.paymentInstructions) setPayNote(last.paymentInstructions);
+    }
+    setShowNew((v) => !v);
   }
 
   function createPeriod() {
@@ -471,7 +482,7 @@ export default function AdminDashboardPage() {
                 fontSize="14px"
                 color="#eaedf2"
                 cursor="pointer"
-                onClick={() => setShowNew(!showNew)}
+                onClick={openNewPeriod}
               >
                 <Plus size={14} />
                 Neue Abrechnung

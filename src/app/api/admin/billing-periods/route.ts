@@ -15,6 +15,7 @@ export async function GET() {
       id: p.id,
       range: formatPeriodRange(p.startDate, p.endDate),
       status: p.status,
+      paymentInstructions: p.paymentInstructions,
     })),
   });
 }
