@@ -91,10 +91,10 @@ prisma/
 
 ### Supabase Auth
 
-Env variables in `.env.local`:
+Env variables in `.env.local` (and in Vercel → Settings → Environment Variables for deploys). **Names must match exactly** — the client/server/proxy read `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, not `…_ANON_KEY`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...   # Supabase → Project Settings → API (publishable/anon key)
 ```
 
 Auth flow: from `/login` either Google OAuth or an email magic link (`signInWithOtp`, `emailRedirectTo` → `/auth/callback`). Both land on `/auth/callback`, which exchanges the code, upserts the `player` row (seeding the name from Google metadata or the email prefix on first login), reads `player.isAdmin`, then redirects to `/admin/dashboard` (admin) or `/home` (player). There is no separate admin login anymore.
@@ -103,11 +103,17 @@ Clients: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (s
 ### Prisma + PostgreSQL
 
 ```
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://...   # runtime: use the Supabase pooler URL (Supavisor, port 6543, ?pgbouncer=true) on serverless/Vercel
+DIRECT_URL=postgresql://...     # direct connection (port 5432); used by prisma.config.ts for migrations only
 ```
 
 Schema in `prisma/schema.prisma`. Adapter: `@prisma/adapter-pg`.
 Tables: `players`, `drinks`, `billing_periods`, `bookings`, `payments`.
 Migration already applied. Prices always as **integer cents**.
+`prisma generate` runs in the `build` script + `postinstall` so the client exists at build time on Vercel.
+
+### Deploying on Vercel
+
+Set the four env vars above in Vercel (Production/Preview/Development), then redeploy. In Supabase → Authentication → URL Configuration, set the **Site URL** to the Vercel domain and add it to **Redirect URLs** (e.g. `https://<app>.vercel.app/**`) so Google OAuth + the email magic link redirect back to `/auth/callback`.
 
 API route: `GET /api/me` → returns `{ id, name, isAdmin }` (Supabase user → Prisma player lookup). `PATCH /api/me { name }` renames the player. The app shows the **DB `player.name`** everywhere (AppBar avatar, bookings header, account screen) — the Google `user_metadata` name is only used by `auth/callback` to seed the player record on first login.
