@@ -7,10 +7,11 @@ datasource db {
 }
 
 model Player {
-  id        String   @id           // = auth.users.id von Supabase
-  name      String   @unique       // Spitzname
-  isAdmin   Boolean  @default(false) @map("is_admin")
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String    @id           // = auth.users.id von Supabase
+  name        String    @unique       // Spitzname
+  isAdmin     Boolean   @default(false) @map("is_admin")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  onboardedAt DateTime? @map("onboarded_at") // set when the player finishes the first-visit welcome
 
   bookings Booking[]
   payments Payment[]

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex, Text, Input } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check } from "lucide-react";
 import { formatCents } from "@/types";
@@ -70,6 +70,9 @@ export default function HauptseiteePage() {
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
   const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
   const [loading, setLoading] = useState(true);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
+  const [welcomeSaving, setWelcomeSaving] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -82,10 +85,32 @@ export default function HauptseiteePage() {
       .then((data) => {
         setDrinks(data.drinks ?? []);
         setClosedPeriodNotice(data.closedPeriod ?? null);
+        if (data.firstVisit) {
+          setWelcomeName(data.playerName ?? "");
+          setWelcomeOpen(true);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function finishWelcome() {
+    const trimmed = welcomeName.trim();
+    if (!trimmed || welcomeSaving) return;
+    setWelcomeSaving(true);
+    try {
+      await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed, onboarded: true }),
+      });
+      setWelcomeOpen(false);
+    } catch {
+      /* ignore */
+    } finally {
+      setWelcomeSaving(false);
+    }
+  }
 
   const saldo = drinks.reduce((sum, d) => sum + d.count * d.price_cents, 0);
 
@@ -420,6 +445,86 @@ export default function HauptseiteePage() {
               onClick={() => setClosedPeriodNotice(null)}
             >
               Verstanden
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* First-visit welcome — ask for the display name */}
+      {welcomeOpen && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.65)"
+            zIndex={300}
+          />
+          <Box
+            position="fixed"
+            bottom={0}
+            left="50%"
+            transform="translateX(-50%)"
+            w="full"
+            maxW="430px"
+            bg="#151a21"
+            borderTopLeftRadius="26px"
+            borderTopRightRadius="26px"
+            px={5}
+            pt={4}
+            pb={8}
+            zIndex={301}
+          >
+            <Box
+              w="36px" h="4px" borderRadius="9999px"
+              bg="rgba(255,255,255,0.12)"
+              mx="auto" mb={5}
+            />
+            <Text fontSize="22px" fontWeight="800" color="#eaedf2" mb={2}>
+              Willkommen in der Kabinen-Bar
+            </Text>
+            <Text fontSize="14px" color="#939dab" mb={5}>
+              Damit ich weiß, wer du bist, gib bitte deinen Namen ein. So erscheinst du in der Spielerliste und in der Abrechnung.
+            </Text>
+
+            <Text fontSize="12px" fontWeight="600" letterSpacing="0.04em" textTransform="uppercase" color="#939dab" mb="8px">
+              Dein Name
+            </Text>
+            <Input
+              value={welcomeName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWelcomeName(e.target.value)}
+              placeholder="Dein Name"
+              h="52px"
+              w="full"
+              bg="#1b212b"
+              border="1px solid rgba(255,255,255,0.12)"
+              borderRadius="12px"
+              px="14px"
+              fontSize="16px"
+              color="#eaedf2"
+              outline="none"
+              mb={5}
+              _focus={{ borderColor: "#0468b3" }}
+              _placeholder={{ color: "#5c6675" }}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") finishWelcome(); }}
+            />
+
+            <Box
+              as="button"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              w="full"
+              h="52px"
+              borderRadius="12px"
+              fontSize="16px"
+              fontWeight="700"
+              border="none"
+              cursor={welcomeName.trim() && !welcomeSaving ? "pointer" : "default"}
+              bg={welcomeName.trim() && !welcomeSaving ? "#0468b3" : "#1b212b"}
+              color={welcomeName.trim() && !welcomeSaving ? "white" : "#5c6675"}
+              onClick={finishWelcome}
+            >
+              {welcomeSaving ? "Speichern…" : "Los geht's"}
             </Box>
           </Box>
         </>
