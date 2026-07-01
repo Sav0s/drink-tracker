@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
-import { getActivePeriod, formatPeriodRange } from "@/lib/period";
+import { getActivePeriod, formatPeriodRange, formatDateShort } from "@/lib/period";
 import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
 
 /**
@@ -69,6 +69,7 @@ export async function GET() {
 
   return NextResponse.json({
     periodId: period?.id ?? null,
+    periodStart: period ? formatDateShort(period.startDate) : null,
     playerName: player.name,
     firstVisit,
     drinks: drinks.map((d) => ({

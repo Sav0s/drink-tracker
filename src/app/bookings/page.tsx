@@ -113,7 +113,7 @@ export default function ProfilePage() {
             fontSize="11px" fontWeight="700" letterSpacing="0.1em"
             textTransform="uppercase" color="#939dab" mb="6px"
           >
-            Du schuldest gesamt
+            Offener Betrag gesamt
           </Text>
           <Text fontSize="34px" fontWeight="800" letterSpacing="-1px" color="#eaedf2" mb={3}>
             {formatCents(totalOwed)}

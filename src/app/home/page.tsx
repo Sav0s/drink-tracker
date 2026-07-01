@@ -69,6 +69,7 @@ export default function HauptseiteePage() {
   const [toastTimer, setToastTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [editSheet, setEditSheet] = useState<EditSheet>({ drink: null });
   const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
+  const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
@@ -85,6 +86,7 @@ export default function HauptseiteePage() {
       .then((data) => {
         setDrinks(data.drinks ?? []);
         setClosedPeriodNotice(data.closedPeriod ?? null);
+        setPeriodStart(data.periodStart ?? null);
         if (data.firstVisit) {
           setWelcomeName(data.playerName ?? "");
           setWelcomeOpen(true);
@@ -183,7 +185,7 @@ export default function HauptseiteePage() {
               fontSize="12px" fontWeight="600" letterSpacing="0.08em"
               textTransform="uppercase" color="#939dab" mb="6px"
             >
-              Du schuldest
+              Offener Betrag
             </Text>
             <Text fontSize="40px" fontWeight="800" letterSpacing="-1.2px" color="#eaedf2" mb="12px">
               {formatCents(saldo)}
@@ -192,8 +194,12 @@ export default function HauptseiteePage() {
               <Text as="span" fontSize="12px" color="#939dab">
                 {drinks.reduce((s, d) => s + d.count, 0)} Getränke
               </Text>
-              <Text as="span" fontSize="12px" color="#5c6675">·</Text>
-              <Text as="span" fontSize="12px" color="#939dab">Abrechnung seit 01.06.</Text>
+              {periodStart && (
+                <>
+                  <Text as="span" fontSize="12px" color="#5c6675">·</Text>
+                  <Text as="span" fontSize="12px" color="#939dab">Abrechnung seit {periodStart}</Text>
+                </>
+              )}
             </Flex>
           </Box>
 
@@ -423,7 +429,7 @@ export default function HauptseiteePage() {
               borderRadius="12px"
             >
               <Text fontSize="12px" fontWeight="600" letterSpacing="0.06em" textTransform="uppercase" color="#939dab" mb="6px">
-                Du schuldest
+                Offener Betrag
               </Text>
               <Text fontSize="28px" fontWeight="800" color="#eaedf2" mb={closedPeriodNotice.payment_instructions ? 4 : 0}>
                 {formatCents(closedPeriodNotice.total_cents)}
