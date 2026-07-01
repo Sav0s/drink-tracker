@@ -11,13 +11,13 @@
     "startDate": "2026-05-01",
     "endDate": "2026-06-01",
     "status": "closed",
-    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: TSV Bobingen Kasse"
+    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: Vereinskasse"
   },
   {
     "id": "period-3",
     "startDate": "2026-04-01",
     "endDate": "2026-05-01",
     "status": "closed",
-    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: TSV Bobingen Kasse"
+    "paymentInstructions": "IBAN DE00 0000 0000 0000 0000 00, Empfänger: Vereinskasse"
   }
 ]

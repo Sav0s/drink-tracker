@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Box, Flex, Text, Image } from "@chakra-ui/react";
 import { ChevronLeft, Receipt, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ROUTES, DEFAULT_PLAYER_NAME } from "@/lib/constants";
+import { ROUTES, DEFAULT_PLAYER_NAME, CLUB_NAME } from "@/lib/constants";
 
 interface AppBarProps {
   /** Title shown on the left. Defaults to the app name. */
@@ -89,7 +89,7 @@ export function AppBar({ title = "Kabinen-Bar", subtitle, showBack = false, onBa
           {!showBack && (
             <Image
               src="/tsv-bobingen-logo.png"
-              alt="TSV Bobingen"
+              alt={CLUB_NAME || "Logo"}
               w="28px"
               h="28px"
               objectFit="contain"

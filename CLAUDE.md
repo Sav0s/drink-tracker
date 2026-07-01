@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-Next.js 16 App Router app for the TSV Bobingen Kabinen-Bar. Two user groups: players (book drinks, see debts) and admin (manages drinks, billing periods, marks payments).
+Next.js 16 App Router app for a sports club's Kabinen-Bar (clubhouse fridge). Two user groups: players (book drinks, see debts) and admin (manages drinks, billing periods, marks payments). The club name is not hardcoded — it comes from `NEXT_PUBLIC_CLUB_NAME` (see `CLUB_NAME` in `src/lib/constants.ts`).
 
 ## Key Conventions
 
@@ -85,7 +85,7 @@ prisma/
 - **Player profile route renamed** `/profile` → `/bookings` (and API `/api/profile` folded into `GET /api/bookings`; POST on the same route still creates a booking).
 - **First-visit welcome** (`/home`): on a player's very first visit a non-dismissable bottom sheet asks for their display name ("Damit ich weiß, wer du bist …"). Tracked via a nullable `players.onboarded_at` column — `GET /api/home` returns `firstVisit` (read-only), and submitting calls `PATCH /api/me { name, onboarded: true }` which sets `onboarded_at` once. New migration `20260624203129_add_onboarded_at` must be applied (`prisma migrate deploy`). The new column is read/written via raw SQL so it compiles before `prisma generate` runs.
 - **Konto verwalten screen** (`/account`): bookings-style top bar (back chevron via `AppBar` `onBack`), edits the player display name. Verwerfen/Speichern are inert + greyed until the name differs from the saved value, then colour up; Speichern persists via `PATCH /api/me`. Hitting back with unsaved changes opens a confirm modal (Hier bleiben / Verlassen).
-- **TSV Bobingen logo embedded** (`public/tsv-bobingen-logo.png`): shown in the `AppBar`, on the login screen, and as favicon/PWA icons (`favicon.ico`, `logo192.png`, `logo512.png`).
+- **Club logo embedded** (`public/tsv-bobingen-logo.png`): shown in the `AppBar`, on the login screen, and as favicon/PWA icons (`favicon.ico`, `logo192.png`, `logo512.png`).
 - TypeScript is clean (`npx tsc --noEmit`). The previously-known Chakra polymorphic-typing errors in `admin/dashboard/page.tsx` are fixed by using Chakra's typed `Input`/`Textarea`/`Image` components instead of `Box as="input"/"textarea"/"img"`.
 
 ## Backend

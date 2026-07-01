@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Box, Flex, Text, Input, Image } from "@chakra-ui/react";
 import { Mail, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { CLUB_NAME } from "@/lib/constants";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,7 +53,7 @@ export default function LoginPage() {
       <Flex flex={1} flexDir="column" alignItems="center" justifyContent="center" w="full" maxW="sm" mx="auto">
         <Image
           src="/tsv-bobingen-logo.png"
-          alt="TSV Bobingen"
+          alt={CLUB_NAME || "Logo"}
           w="96px"
           h="96px"
           objectFit="contain"
@@ -63,7 +64,7 @@ export default function LoginPage() {
           Kabinen-Bar
         </Text>
         <Text fontSize="14px" color="#939dab" mb={10}>
-          Getränke-Tracker · TSV Bobingen
+          Getränke-Tracker{CLUB_NAME ? ` · ${CLUB_NAME}` : ""}
         </Text>
 
         {status === "sent" ? (

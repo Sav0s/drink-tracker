@@ -1,6 +1,8 @@
 # Kabinen-Bar · Drink Tracker
 
-A small web app for the **TSV Bobingen Kabinen-Bar** (the clubhouse fridge). Players tap to log the drinks they take, the app keeps a running tab per billing period, and the treasurer settles up. Two roles: **players** (book drinks, see what they owe, mark themselves as paid) and **admin** (manage the drink catalog and billing periods).
+A small web app for a sports club's **Kabinen-Bar** (the clubhouse fridge). Players tap to log the drinks they take, the app keeps a running tab per billing period, and the treasurer settles up. Two roles: **players** (book drinks, see what they owe, mark themselves as paid) and **admin** (manage the drink catalog and billing periods).
+
+The club/organization name is configurable via the `NEXT_PUBLIC_CLUB_NAME` environment variable, so it isn't baked into the source.
 
 Built as a mobile-first, dark-only web app.
 
@@ -65,6 +67,9 @@ Built as a mobile-first, dark-only web app.
    ```env
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key
+
+   # Club/organization name shown in the UI (optional)
+   NEXT_PUBLIC_CLUB_NAME=Your Club
 
    # Runtime: Supabase connection pooler (Supavisor, port 6543)
    DATABASE_URL=postgresql://...:6543/postgres?pgbouncer=true
@@ -156,4 +161,4 @@ Deployed on **Vercel**. Set the four environment variables above in Vercel
 
 ## License
 
-Private project for the TSV Bobingen e.V. Not affiliated with or endorsed by any drink manufacturer.
+Private project for a sports club. Not affiliated with or endorsed by any drink manufacturer.

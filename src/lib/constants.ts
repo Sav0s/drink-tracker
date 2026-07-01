@@ -50,6 +50,13 @@ export const PROTECTED_ROUTES = [ROUTES.HOME, ROUTES.BOOKINGS, ROUTES.ACCOUNT, "
 /** Fallback player name shown when no name can be derived from the auth profile. */
 export const DEFAULT_PLAYER_NAME = "Spieler";
 
+/**
+ * Club/organization name shown in the UI (title, login subtitle, logo alt text).
+ * Configured via NEXT_PUBLIC_CLUB_NAME so the specific club isn't baked into the
+ * source. Empty string when unset — callers should render it conditionally.
+ */
+export const CLUB_NAME = process.env.NEXT_PUBLIC_CLUB_NAME ?? "";
+
 /** Fallback copy shown when a closed billing period has no payment instructions set. */
 export const NO_PAYMENT_INSTRUCTIONS_FALLBACK =
   "Bitte beim Kassenwart erfragen, wie die Zahlung erfolgen soll.";
