@@ -4,9 +4,13 @@ import userEvent from '@testing-library/user-event';
 
 const push = vi.fn();
 const getUser = vi.fn();
+// next/navigation's useRouter() returns a stable object across renders in the
+// real app; a fresh object per call would make effects keyed on `[router]`
+// (e.g. this page's data fetch) re-fire on every re-render.
+const router = { push };
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => router,
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
