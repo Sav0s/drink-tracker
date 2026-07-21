@@ -150,13 +150,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!periodsLoaded) return;
     const period = periods[selPeriod];
-    if (!period) { setMembers([]); setMembersLoading(false); return; }
-    setMembersLoading(true);
-    fetch(`/api/admin/billing-periods/${period.id}/members`)
-      .then((r) => r.json())
-      .then((data) => setMembers(data.members ?? []))
-      .catch(() => {})
-      .finally(() => setMembersLoading(false));
+    async function load() {
+      if (!period) { setMembers([]); setMembersLoading(false); return; }
+      setMembersLoading(true);
+      try {
+        const r = await fetch(`/api/admin/billing-periods/${period.id}/members`);
+        const data = await r.json();
+        setMembers(data.members ?? []);
+      } catch {}
+      setMembersLoading(false);
+    }
+    load();
   }, [periods, selPeriod, periodsLoaded]);
 
   // Close the period-picker dropdown on any click outside of it.
