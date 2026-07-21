@@ -14,6 +14,20 @@ Next.js 16 App Router app for a sports club's Kabinen-Bar (clubhouse fridge). Tw
 - **German throughout for in-app UI.** All labels, error messages, and UI copy shown inside the running app are in German. This applies only to user-facing strings — code, comments, commit messages, and docs (like this file) are in English per the repo-language convention.
 - **Chakra UI v3** — API differs from v2. Theme via `createSystem` + `defineConfig`, provider via `<ChakraProvider value={system}>`.
 
+## Testing
+
+**Every change ships with tests.** New `src/lib/` functions, new/changed API route logic, and new/changed components all need corresponding tests in the same PR — not as a follow-up. Aim for good coverage, especially on money math, period transitions, and auth gating; trivial glue code (pure JSX with no logic) can be skipped.
+
+- **Stack:** Vitest + Testing Library. Config in `vitest.config.ts` / `vitest.setup.ts` (jsdom env, `@` alias, Chakra's `ResizeObserver`/`matchMedia` mocks).
+- **Rendering components:** import `render`/`screen`/etc. from `src/test-utils.tsx`, not directly from `@testing-library/react` — it wraps components in the app's `ChakraProvider`, which Chakra v3 requires (plain `render` throws `useContext returned undefined`).
+- **Mocking:** isolate logic from the real DB/auth with `vi.mock('@/lib/prisma')` and `vi.mock('@/lib/supabase/server')` / `'@/lib/supabase/client')`. See `src/lib/auth.test.ts` for the reference pattern (mocked Prisma + Supabase) and `src/app/home/page.test.tsx` for a component test that mocks `fetch` + `next/navigation`.
+- **Commands:** `npm test` (single run), `npm run test:watch` (watch mode), `npm run test:coverage` (coverage report, v8 provider).
+- **CI:** `.github/workflows/ci.yml` runs lint + `tsc --noEmit` + `npm test` on every push/PR to `main`. A red CI is a blocker — don't merge past it.
+
+## Git Workflow
+
+**Never push directly to `main`.** Every change goes through a feature branch + pull request, even small ones — no exceptions for "quick fixes". Let CI run and pass on the PR before merging.
+
 ## Structure
 
 ```

@@ -5,9 +5,11 @@ import userEvent from '@testing-library/user-event';
 const push = vi.fn();
 const getUser = vi.fn();
 const signOut = vi.fn();
+// Stable across renders, like the real next/navigation useRouter().
+const router = { push };
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => router,
 }));
 
 vi.mock('@/lib/supabase/client', () => ({

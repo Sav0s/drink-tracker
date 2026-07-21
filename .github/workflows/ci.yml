@@ -10,6 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    permissions:
+      pull-requests: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,3 +33,10 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Run coverage
+        run: npm run test:coverage
+
+      - name: Post coverage comment
+        if: github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
