@@ -1,11 +1,12 @@
 import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
-import { loadEnvConfig } from '@next/env';
+import * as dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-// Load .env* files so DATABASE_URL is available when Prisma is imported
-// (in CI the var is already in process.env; this handles local development)
-loadEnvConfig(process.cwd());
+// Load .env.local for local development; in CI DATABASE_URL is already in env
+dotenv.config({ path: '.env.local' });
 
 const BASE = 'http://localhost:3000';
 const PLAYER_ID = 'e2e-player-001';
@@ -50,7 +51,9 @@ async function cleanup(): Promise<void> {
 async function seedDrink(): Promise<void> {
   // Use Prisma directly — bypasses browser auth cookie handling which is
   // unreliable when loading storageState into a fresh browser context.
-  const { prisma } = await import('../src/lib/prisma');
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  });
   try {
     await prisma.drink.create({
       data: { name: 'E2E Bier', priceCents: 150, active: true },
