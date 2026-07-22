@@ -8,16 +8,14 @@ import { prisma } from '@/lib/prisma';
  * against the seeded player row.
  */
 
-let playerCounter = 0;
-
 export async function seedPlayer(
   overrides: Partial<{ id: string; name: string; isAdmin: boolean }> = {}
 ) {
-  playerCounter += 1;
+  const id = overrides.id ?? crypto.randomUUID();
   return prisma.player.create({
     data: {
-      id: overrides.id ?? `test-user-${playerCounter}`,
-      name: overrides.name ?? `Test Player ${playerCounter}`,
+      id,
+      name: overrides.name ?? `Test Player ${id.slice(0, 8)}`,
       isAdmin: overrides.isAdmin ?? false,
     },
   });
