@@ -39,6 +39,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# playwright auth state (json files contain sensitive session tokens)
+e2e/.auth/*.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
