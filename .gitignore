@@ -42,6 +42,10 @@ yarn-error.log*
 # playwright auth state (json files contain sensitive session tokens)
 e2e/.auth/*.json
 
+# playwright generated output
+playwright-report/
+test-results/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
