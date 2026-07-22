@@ -29,5 +29,11 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Explicitly forward all env vars + ensure PLAYWRIGHT_TEST reaches the
+    // dev server subprocess (Playwright may not inherit host env by default).
+    env: {
+      ...process.env as Record<string, string>,
+      PLAYWRIGHT_TEST: 'true',
+    },
   },
 });
