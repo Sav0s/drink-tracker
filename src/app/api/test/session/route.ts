@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient as createAdminClient, createClient as createServerClient } from '@supabase/supabase-js';
+import { createServerClient as createSsrClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
-import { createClient as createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   if (process.env.PLAYWRIGHT_TEST !== 'true') {
@@ -46,7 +46,28 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createServerSupabaseClient();
+  // Build the response first so we can set cookies directly on it.
+  // Using cookies().set() from next/headers is unreliable in Next.js 16 App
+  // Router route handlers — cookies set that way may not appear in Set-Cookie
+  // response headers. Setting them on the NextResponse object is the safe path
+  // (same pattern the proxy uses).
+  const response = NextResponse.json({ ok: true });
+
+  const supabase = createSsrClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll: () => [],
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
   const { error: otpError } = await supabase.auth.verifyOtp({
     token_hash: linkData.properties.hashed_token,
     type: 'email',
@@ -56,5 +77,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: otpError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return response;
 }
