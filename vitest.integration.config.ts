@@ -13,8 +13,9 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./src/test-integration-setup.ts'],
     include: ['src/**/*.integration.test.ts'],
-    // DB round-trips are slower than mocked unit tests; a few sequential
-    // requests per test can add up.
+    // Integration tests share a single database — run files sequentially so
+    // one file's beforeEach TRUNCATE doesn't race with another file's inserts.
+    fileParallelism: false,
     testTimeout: 15000,
     hookTimeout: 15000,
   },
