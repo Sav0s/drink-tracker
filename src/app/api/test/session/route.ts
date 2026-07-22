@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient as createAdminClient, createClient as createServerClient } from '@supabase/supabase-js';
-import { createServerClient as createSsrClient } from '@supabase/ssr';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
@@ -34,48 +33,23 @@ export async function POST(request: Request) {
     if (!/already registered/i.test(String(err))) throw err;
   });
 
+  // Generate a magic link that redirects to our local auth callback.
+  // The browser will navigate to this URL; Supabase verifies the token,
+  // then redirects to /auth/callback which calls exchangeCodeForSession
+  // and sets auth cookies via a navigation response (more reliable than
+  // setting cookies from a JSON API response).
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: `${userId}@e2e.test`,
+    options: { redirectTo: 'http://localhost:3000/auth/callback' },
   });
 
-  if (linkError || !linkData?.properties?.hashed_token) {
+  if (linkError || !linkData?.properties?.action_link) {
     return NextResponse.json(
       { error: linkError?.message ?? 'generateLink failed' },
       { status: 500 }
     );
   }
 
-  // Build the response first so we can set cookies directly on it.
-  // Using cookies().set() from next/headers is unreliable in Next.js 16 App
-  // Router route handlers — cookies set that way may not appear in Set-Cookie
-  // response headers. Setting them on the NextResponse object is the safe path
-  // (same pattern the proxy uses).
-  const response = NextResponse.json({ ok: true });
-
-  const supabase = createSsrClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll: () => [],
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  const { error: otpError } = await supabase.auth.verifyOtp({
-    token_hash: linkData.properties.hashed_token,
-    type: 'email',
-  });
-
-  if (otpError) {
-    return NextResponse.json({ error: otpError.message }, { status: 500 });
-  }
-
-  return response;
+  return NextResponse.json({ action_link: linkData.properties.action_link });
 }
