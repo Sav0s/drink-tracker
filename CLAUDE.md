@@ -22,7 +22,19 @@ Next.js 16 App Router app for a sports club's Kabinen-Bar (clubhouse fridge). Tw
 - **Rendering components:** import `render`/`screen`/etc. from `src/test-utils.tsx`, not directly from `@testing-library/react` — it wraps components in the app's `ChakraProvider`, which Chakra v3 requires (plain `render` throws `useContext returned undefined`).
 - **Mocking:** isolate logic from the real DB/auth with `vi.mock('@/lib/prisma')` and `vi.mock('@/lib/supabase/server')` / `'@/lib/supabase/client')`. See `src/lib/auth.test.ts` for the reference pattern (mocked Prisma + Supabase) and `src/app/home/page.test.tsx` for a component test that mocks `fetch` + `next/navigation`.
 - **Commands:** `npm test` (single run), `npm run test:watch` (watch mode), `npm run test:coverage` (coverage report, v8 provider).
-- **CI:** `.github/workflows/ci.yml` runs lint + `tsc --noEmit` + `npm test` on every push/PR to `main`. A red CI is a blocker — don't merge past it.
+- **CI:** `.github/workflows/ci.yml` runs lint + `tsc --noEmit` + `npm test` (+ coverage, posted as a PR comment) on every push/PR to `main`. A red CI is a blocker — don't merge past it.
+
+### Integration tests
+
+For logic that's only meaningfully correct against a real database — auth gating via `requireAdmin()`/`getCurrentPlayer()`, and multi-row transitions like opening a billing period (must atomically close the previous active one) — add an integration test instead of/alongside a mocked unit test.
+
+- **Naming/location:** `*.integration.test.ts`, colocated next to the route it tests (e.g. `src/app/api/admin/drinks/route.integration.test.ts`). Excluded from the regular `vitest.config.ts` run via its `exclude` list.
+- **Config:** separate `vitest.integration.config.ts` (Node env, no jsdom/Chakra needed since these call route handlers directly). Setup file `src/test-integration-setup.ts` truncates every table before each test — tests never depend on execution order or leftover rows.
+- **What's real vs. mocked:** the Prisma client and the database are real. Only `@/lib/supabase/server` (or `client`) is mocked, stubbing just the external auth call — `getCurrentPlayer()`/`requireAdmin()` still run for real against a DB-seeded player row. Seed fixtures live in `src/test-integration-helpers.ts` (`seedPlayer`, `seedDrink`, `seedActivePeriod`).
+- **Run locally:** `npm run test:integration` needs `DATABASE_URL` pointing at a disposable Postgres (never production) with migrations applied (`npx prisma migrate deploy`). The setup file throws immediately if `DATABASE_URL` is unset.
+- **CI:** separate `integration` job in `ci.yml` spins up a `postgres:16` service container, runs `prisma migrate deploy`, then `npm run test:integration`.
+
+E2E (Playwright, thin layer of critical happy paths) is the remaining deferred piece — not set up yet.
 
 ## Git Workflow
 
