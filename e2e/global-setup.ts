@@ -18,26 +18,14 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
     const context = await browser.newContext();
     const page    = await context.newPage();
 
-    // Step 1: Provision Supabase user + get magic link action_link
-    const res = await page.request.post(`${BASE}/api/test/session`, {
-      data: { userId, isAdmin },
-    });
-    if (!res.ok()) {
-      throw new Error(`Session setup failed for ${userId}: ${await res.text()}`);
-    }
-    const { action_link } = await res.json() as { action_link: string };
-    if (!action_link) {
-      throw new Error(`Session setup for ${userId}: no action_link in response`);
-    }
+    // Navigate the browser (not page.request) to the session route so that the
+    // auth cookies set on the redirect response land in the browser's cookie
+    // store. page.request.post() is a separate context and does NOT share
+    // cookies with the browser.
+    await page.goto(`${BASE}/api/test/session?userId=${userId}&isAdmin=${isAdmin}`);
 
-    // Step 2: Navigate to the magic link — Supabase verifies the token and
-    // redirects through /auth/callback which calls exchangeCodeForSession and
-    // sets auth cookies via a navigation response (proven production path).
-    await page.goto(action_link);
-
-    // auth/callback redirects to /home or /admin/dashboard on success
     const finalUrl = page.url();
-    console.log(`[setup ${userId}] Final URL after magic-link navigation: ${finalUrl}`);
+    console.log(`[setup ${userId}] Final URL: ${finalUrl}`);
     if (finalUrl.includes('/login')) {
       throw new Error(`Session for ${userId} was not authenticated — ended up at login`);
     }
@@ -45,7 +33,6 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
     const dest = path.resolve(__dirname, `.auth/${isAdmin ? 'admin' : 'player'}.json`);
     await context.storageState({ path: dest });
 
-    // Log cookie names to help diagnose auth issues
     const saved = JSON.parse(fs.readFileSync(dest, 'utf-8')) as { cookies: { name: string }[] };
     const cookieNames = saved.cookies.map(c => c.name).join(', ') || 'NONE';
     console.log(`[setup ${userId}] StorageState cookies: ${cookieNames}`);
@@ -55,7 +42,6 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
 }
 
 async function cleanup(): Promise<void> {
-  // Retry a few times — on CI the dev server may be warming up cold routes
   for (let attempt = 1; attempt <= 5; attempt++) {
     const res = await fetch(`${BASE}/api/test/cleanup`, { method: 'POST' });
     if (res.ok) return;
@@ -67,7 +53,6 @@ async function cleanup(): Promise<void> {
 }
 
 async function seedDrink(): Promise<void> {
-  // Use Prisma directly — bypasses browser auth cookie handling
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
   });
