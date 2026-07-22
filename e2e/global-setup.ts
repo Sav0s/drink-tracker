@@ -49,6 +49,9 @@ async function seedDrink(): Promise<void> {
       storageState: path.resolve(__dirname, '.auth/admin.json'),
     });
     const page = await context.newPage();
+    // Navigate first so SameSite=Lax cookies are sent on the subsequent
+    // same-origin POST (unnavigated pages have null document origin).
+    await page.goto(`${BASE}/admin/dashboard`);
     const res = await page.request.post(`${BASE}/api/admin/drinks`, {
       data: { name: 'E2E Bier', price_cents: 150, active: true },
     });
