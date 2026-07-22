@@ -31,10 +31,14 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
 }
 
 async function cleanup(): Promise<void> {
-  // Use a plain fetch — no browser needed for this call
-  const res = await fetch(`${BASE}/api/test/cleanup`, { method: 'POST' });
-  if (!res.ok) {
-    throw new Error(`Cleanup failed: ${await res.text()}`);
+  // Retry a few times — on CI the dev server may be warming up cold routes
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const res = await fetch(`${BASE}/api/test/cleanup`, { method: 'POST' });
+    if (res.ok) return;
+    const body = await res.text();
+    console.error(`Cleanup attempt ${attempt}/5 failed (HTTP ${res.status}): ${body}`);
+    if (attempt < 5) await new Promise(r => setTimeout(r, 2000));
+    else throw new Error(`Cleanup failed after 5 attempts (HTTP ${res.status}): ${body}`);
   }
 }
 
