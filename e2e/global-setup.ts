@@ -1,6 +1,11 @@
 import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
+import { loadEnvConfig } from '@next/env';
+
+// Load .env* files so DATABASE_URL is available when Prisma is imported
+// (in CI the var is already in process.env; this handles local development)
+loadEnvConfig(process.cwd());
 
 const BASE = 'http://localhost:3000';
 const PLAYER_ID = 'e2e-player-001';
@@ -43,23 +48,15 @@ async function cleanup(): Promise<void> {
 }
 
 async function seedDrink(): Promise<void> {
-  const browser = await chromium.launch();
+  // Use Prisma directly — bypasses browser auth cookie handling which is
+  // unreliable when loading storageState into a fresh browser context.
+  const { prisma } = await import('../src/lib/prisma');
   try {
-    const context = await browser.newContext({
-      storageState: path.resolve(__dirname, '.auth/admin.json'),
+    await prisma.drink.create({
+      data: { name: 'E2E Bier', priceCents: 150, active: true },
     });
-    const page = await context.newPage();
-    // Navigate first so SameSite=Lax cookies are sent on the subsequent
-    // same-origin POST (unnavigated pages have null document origin).
-    await page.goto(`${BASE}/admin/dashboard`);
-    const res = await page.request.post(`${BASE}/api/admin/drinks`, {
-      data: { name: 'E2E Bier', price_cents: 150, active: true },
-    });
-    if (!res.ok()) {
-      throw new Error(`seedDrink failed: ${await res.text()}`);
-    }
   } finally {
-    await browser.close();
+    await prisma.$disconnect();
   }
 }
 
