@@ -10,6 +10,10 @@ export async function POST(request: Request) {
 
   const { userId, isAdmin } = await request.json();
 
+  if (!userId || typeof userId !== 'string') {
+    return NextResponse.json({ error: 'userId required' }, { status: 400 });
+  }
+
   await prisma.player.upsert({
     where: { id: userId },
     update: { isAdmin },
@@ -26,7 +30,9 @@ export async function POST(request: Request) {
     id: userId,
     email: `${userId}@e2e.test`,
     email_confirm: true,
-  }).catch(() => {});
+  }).catch((err: unknown) => {
+    if (!/already registered/i.test(String(err))) throw err;
+  });
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
@@ -42,8 +48,7 @@ export async function POST(request: Request) {
 
   const supabase = await createServerSupabaseClient();
   const { error: otpError } = await supabase.auth.verifyOtp({
-    email: `${userId}@e2e.test`,
-    token: linkData.properties.hashed_token,
+    token_hash: linkData.properties.hashed_token,
     type: 'email',
   });
 
