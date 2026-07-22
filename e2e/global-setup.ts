@@ -30,6 +30,14 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
   }
 }
 
+async function cleanup(): Promise<void> {
+  // Use a plain fetch — no browser needed for this call
+  const res = await fetch(`${BASE}/api/test/cleanup`, { method: 'POST' });
+  if (!res.ok) {
+    throw new Error(`Cleanup failed: ${await res.text()}`);
+  }
+}
+
 async function seedDrink(): Promise<void> {
   const browser = await chromium.launch();
   try {
@@ -50,6 +58,7 @@ async function seedDrink(): Promise<void> {
 
 export default async function globalSetup() {
   fs.mkdirSync(path.resolve(__dirname, '.auth'), { recursive: true });
+  await cleanup();                          // wipe e2e data before seeding
   await setupSession(PLAYER_ID, false);
   await setupSession(ADMIN_ID,  true);
   await seedDrink();

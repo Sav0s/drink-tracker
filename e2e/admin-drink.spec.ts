@@ -5,7 +5,7 @@ test('admin creates a drink and it appears in the list', async ({ page }) => {
   await page.goto('/admin/dashboard');
 
   // Wait for the drinks tab to load
-  await expect(page.locator('text=Getränke verwalten')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('text=Getränke verwalten').first()).toBeVisible({ timeout: 10_000 });
 
   // Fill in the new drink row
   await page.getByPlaceholder('Name').fill('Neues E2E Getränk');

@@ -14,10 +14,10 @@ test('player edits display name and it persists', async ({ page }) => {
   await nameInput.fill('E2E Renamed Player');
 
   // Speichern becomes active — click it
-  await page.getByRole('button', { name: 'Speichern' }).click();
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click();
 
   // Wait for save to complete (button returns to non-saving label)
-  await expect(page.getByRole('button', { name: 'Speichern' })).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByRole('button', { name: 'Speichern', exact: true })).toBeVisible({ timeout: 5_000 });
 
   // Navigate away and back to confirm persistence
   await page.goto('/home');
