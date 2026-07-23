@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, type BrowserContext } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
@@ -12,17 +12,58 @@ const BASE = 'http://localhost:3000';
 const PLAYER_ID = 'e2e-player-001';
 const ADMIN_ID  = 'e2e-admin-001';
 
+// Build the Supabase auth-token cookie name from the project URL.
+// Format: sb-<project-ref>-auth-token
+function supabaseCookieName(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set');
+  const ref = new URL(url).hostname.split('.')[0];
+  return `sb-${ref}-auth-token`;
+}
+
+// Encode a Supabase session object the same way @supabase/ssr does:
+//   "base64-" + base64url(JSON.stringify(session))
+// This matches the decodeChunkedCookieValue logic in @supabase/ssr/cookies.js.
+function encodeSession(session: object): string {
+  const json = JSON.stringify(session);
+  const b64 = Buffer.from(json, 'utf8').toString('base64url');
+  return `base64-${b64}`;
+}
+
+async function injectSession(context: BrowserContext, session: object): Promise<void> {
+  await context.addCookies([{
+    name:     supabaseCookieName(),
+    value:    encodeSession(session),
+    domain:   'localhost',
+    path:     '/',
+    httpOnly: false,
+    secure:   false,
+    sameSite: 'Lax',
+    // expires: -1 means session cookie — the session object's expires_at handles expiry
+  }]);
+}
+
 async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
+  // 1. Get a fresh Supabase session for this test user
+  const res = await fetch(`${BASE}/api/test/session`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ userId, isAdmin }),
+  });
+  if (!res.ok) {
+    throw new Error(`Session setup failed for ${userId}: ${await res.text()}`);
+  }
+  const { session } = (await res.json()) as { session: object };
+  if (!session) throw new Error(`Session setup for ${userId}: no session in response`);
+
+  // 2. Create a browser context, inject the session cookie, verify auth works
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext();
-    const page    = await context.newPage();
+    await injectSession(context, session);
 
-    // Navigate the browser (not page.request) to the session route so that the
-    // auth cookies set on the redirect response land in the browser's cookie
-    // store. page.request.post() is a separate context and does NOT share
-    // cookies with the browser.
-    await page.goto(`${BASE}/api/test/session?userId=${userId}&isAdmin=${isAdmin}`);
+    const page = await context.newPage();
+    await page.goto(isAdmin ? `${BASE}/admin/dashboard` : `${BASE}/home`);
 
     const finalUrl = page.url();
     console.log(`[setup ${userId}] Final URL: ${finalUrl}`);
@@ -30,6 +71,7 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
       throw new Error(`Session for ${userId} was not authenticated — ended up at login`);
     }
 
+    // 3. Save storageState (includes the injected cookie)
     const dest = path.resolve(__dirname, `.auth/${isAdmin ? 'admin' : 'player'}.json`);
     await context.storageState({ path: dest });
 
