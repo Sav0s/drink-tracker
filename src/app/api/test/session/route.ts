@@ -30,40 +30,22 @@ export async function POST(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Determine the real Supabase UUID for this test user. We try to create the
-    // user with our desired ID first; if the email is already taken (Supabase
-    // auth users persist across CI runs while the local DB is fresh), fall back
-    // to a getUserByEmail lookup to get the real UUID assigned by Supabase.
-    let actualUserId: string;
-    const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
+    // Try to create the user with our desired ID. Supabase auth users persist
+    // across CI runs while the local DB resets, so the email may already be
+    // taken — we log the error but continue. generateLink (below) works
+    // regardless and returns the real UUID assigned by Supabase.
+    const { error: createError } = await admin.auth.admin.createUser({
       id: userId,
       email,
       email_confirm: true,
     });
     if (createError) {
-      console.log(`[session ${userId}] createUser: ${createError.message} — looking up real UUID`);
-      const { data: existingData, error: lookupError } = await admin.auth.admin.getUserByEmail(email);
-      if (lookupError || !existingData?.user) {
-        const msg = lookupError?.message ?? 'getUserByEmail returned no user';
-        console.error(`[session ${userId}] getUserByEmail failed: ${msg}`);
-        return NextResponse.json({ error: msg }, { status: 500 });
-      }
-      actualUserId = existingData.user.id;
-      console.log(`[session ${userId}] Existing user — real UUID: ${actualUserId}`);
-    } else {
-      actualUserId = createdUser?.user?.id ?? userId;
-      console.log(`[session ${userId}] Created new user — UUID: ${actualUserId}`);
+      console.log(`[session ${userId}] createUser: ${createError.message} (continuing)`);
     }
 
-    // Upsert the player with the REAL Supabase UUID and mark as onboarded so
-    // the first-visit welcome modal doesn't block E2E tests.
-    await prisma.player.upsert({
-      where: { id: actualUserId },
-      update: { isAdmin },
-      create: { id: actualUserId, name: `E2E ${isAdmin ? 'Admin' : 'Player'}`, isAdmin },
-    });
-    await prisma.$executeRaw`UPDATE players SET onboarded_at = NOW() WHERE id = ${actualUserId}`;
-
+    // generateLink returns linkData.user with the real Supabase UUID for this
+    // email — even if createUser above silently created a different UUID or
+    // if the user already existed from a previous run.
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'magiclink',
       email,
@@ -75,8 +57,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
-    // Verify the OTP server-side. We don't need setAll to fire — we read the
-    // session directly from the verifyOtp return value.
+    const actualUserId = linkData.user.id;
+    console.log(`[session ${userId}] actual UUID: ${actualUserId} (requested: ${userId})`);
+
+    // Upsert the player with the REAL Supabase UUID and mark as onboarded so
+    // the first-visit welcome modal doesn't block E2E tests.
+    await prisma.player.upsert({
+      where: { id: actualUserId },
+      update: { isAdmin },
+      create: { id: actualUserId, name: `E2E ${isAdmin ? 'Admin' : 'Player'}`, isAdmin },
+    });
+    await prisma.$executeRaw`UPDATE players SET onboarded_at = NOW() WHERE id = ${actualUserId}`;
+
+    // Verify the OTP server-side to get the session object.
     const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
       cookies: { getAll: () => [], setAll: () => {} },
     });
@@ -92,7 +85,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
-    console.log(`[session ${userId}] session ok — JWT user.id: ${data.session.user.id} / actualUserId: ${actualUserId}`);
+    console.log(`[session ${userId}] session ok — JWT user.id: ${data.session.user.id}`);
     return NextResponse.json({ session: data.session, actualUserId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
