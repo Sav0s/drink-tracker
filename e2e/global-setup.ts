@@ -63,6 +63,19 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
     await injectSession(context, session);
 
     const page = await context.newPage();
+
+    // Verify /api/me works with the injected cookie (confirms the player row
+    // exists and the Supabase user.id matches our DB player id).
+    const meRes = await page.request.get(`${BASE}/api/me`);
+    if (!meRes.ok()) {
+      throw new Error(`/api/me failed for ${userId}: HTTP ${meRes.status()} — ${await meRes.text()}`);
+    }
+    const me = await meRes.json() as { id: string; name: string };
+    console.log(`[setup ${userId}] /api/me → id=${me.id} name="${me.name}"`);
+    if (me.id !== userId) {
+      throw new Error(`/api/me returned unexpected id ${me.id} (expected ${userId})`);
+    }
+
     await page.goto(isAdmin ? `${BASE}/admin/dashboard` : `${BASE}/home`);
 
     const finalUrl = page.url();

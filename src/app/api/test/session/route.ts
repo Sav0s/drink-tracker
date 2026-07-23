@@ -73,7 +73,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
-    console.log(`[session ${userId}] session obtained (expires_at: ${data.session.expires_at})`);
+    console.log(`[session ${userId}] session ok — user.id in JWT: ${data.session.user.id} (expected: ${userId})`);
+    if (data.session.user.id !== userId) {
+      console.error(`[session ${userId}] MISMATCH: Supabase user has different UUID. DB player lookup will fail.`);
+    }
     return NextResponse.json({ session: data.session });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
