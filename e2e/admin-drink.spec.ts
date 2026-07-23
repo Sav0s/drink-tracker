@@ -8,12 +8,12 @@ test('admin creates a drink and it appears in the list', async ({ page }) => {
   await expect(page.locator('text=Getränke verwalten').first()).toBeVisible({ timeout: 10_000 });
 
   // Fill in the new drink row
-  await page.getByPlaceholder('Name').fill('Neues E2E Getränk');
+  await page.getByPlaceholder('Name').fill('E2E Getränk Test');
   await page.getByPlaceholder('1,50').fill('2,50');
 
   // Click the "+" button to add
   await page.getByRole('button', { name: '+' }).click();
 
   // The new drink should appear in the list
-  await expect(page.locator('text=Neues E2E Getränk').first()).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('text=E2E Getränk Test').first()).toBeVisible({ timeout: 5_000 });
 });
