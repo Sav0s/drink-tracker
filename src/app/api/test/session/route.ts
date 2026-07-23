@@ -21,33 +21,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'userId required' }, { status: 400 });
   }
 
-  try {
-    await prisma.player.upsert({
-      where: { id: userId },
-      update: { isAdmin },
-      create: { id: userId, name: `E2E ${isAdmin ? 'Admin' : 'Player'}`, isAdmin },
-    });
+  const email = `${userId}@e2e.test`;
 
+  try {
     const admin = createAdminClient(
       SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // createUser is idempotent — ignore "already registered" errors since
-    // Supabase auth users persist across CI runs while the local DB is fresh.
-    const { error: createError } = await admin.auth.admin.createUser({
+    // Determine the real Supabase UUID for this test user. We try to create the
+    // user with our desired ID first; if the email is already taken (Supabase
+    // auth users persist across CI runs while the local DB is fresh), fall back
+    // to a getUserByEmail lookup to get the real UUID assigned by Supabase.
+    let actualUserId: string;
+    const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
       id: userId,
-      email: `${userId}@e2e.test`,
+      email,
       email_confirm: true,
     });
     if (createError) {
-      console.log(`[session ${userId}] createUser: ${createError.message} (continuing)`);
+      console.log(`[session ${userId}] createUser: ${createError.message} — looking up real UUID`);
+      const { data: existingData, error: lookupError } = await admin.auth.admin.getUserByEmail(email);
+      if (lookupError || !existingData?.user) {
+        const msg = lookupError?.message ?? 'getUserByEmail returned no user';
+        console.error(`[session ${userId}] getUserByEmail failed: ${msg}`);
+        return NextResponse.json({ error: msg }, { status: 500 });
+      }
+      actualUserId = existingData.user.id;
+      console.log(`[session ${userId}] Existing user — real UUID: ${actualUserId}`);
+    } else {
+      actualUserId = createdUser?.user?.id ?? userId;
+      console.log(`[session ${userId}] Created new user — UUID: ${actualUserId}`);
     }
+
+    // Upsert the player with the REAL Supabase UUID and mark as onboarded so
+    // the first-visit welcome modal doesn't block E2E tests.
+    await prisma.player.upsert({
+      where: { id: actualUserId },
+      update: { isAdmin },
+      create: { id: actualUserId, name: `E2E ${isAdmin ? 'Admin' : 'Player'}`, isAdmin },
+    });
+    await prisma.$executeRaw`UPDATE players SET onboarded_at = NOW() WHERE id = ${actualUserId}`;
 
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: 'magiclink',
-      email: `${userId}@e2e.test`,
+      email,
     });
 
     if (linkError || !linkData?.properties?.hashed_token) {
@@ -73,11 +92,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg }, { status: 500 });
     }
 
-    console.log(`[session ${userId}] session ok — user.id in JWT: ${data.session.user.id} (expected: ${userId})`);
-    if (data.session.user.id !== userId) {
-      console.error(`[session ${userId}] MISMATCH: Supabase user has different UUID. DB player lookup will fail.`);
-    }
-    return NextResponse.json({ session: data.session });
+    console.log(`[session ${userId}] session ok — JWT user.id: ${data.session.user.id} / actualUserId: ${actualUserId}`);
+    return NextResponse.json({ session: data.session, actualUserId });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[session ${userId}] Unexpected error: ${msg}`);

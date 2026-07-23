@@ -44,7 +44,9 @@ async function injectSession(context: BrowserContext, session: object): Promise<
 }
 
 async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
-  // 1. Get a fresh Supabase session for this test user
+  // 1. Get a fresh Supabase session for this test user.
+  //    The route also returns the real Supabase UUID (may differ from userId
+  //    when the auth user already existed from a previous CI run).
   const res = await fetch(`${BASE}/api/test/session`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -53,7 +55,7 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
   if (!res.ok) {
     throw new Error(`Session setup failed for ${userId}: ${await res.text()}`);
   }
-  const { session } = (await res.json()) as { session: object };
+  const { session, actualUserId } = (await res.json()) as { session: object; actualUserId: string };
   if (!session) throw new Error(`Session setup for ${userId}: no session in response`);
 
   // 2. Create a browser context, inject the session cookie, verify auth works
@@ -71,9 +73,9 @@ async function setupSession(userId: string, isAdmin: boolean): Promise<void> {
       throw new Error(`/api/me failed for ${userId}: HTTP ${meRes.status()} — ${await meRes.text()}`);
     }
     const me = await meRes.json() as { id: string; name: string };
-    console.log(`[setup ${userId}] /api/me → id=${me.id} name="${me.name}"`);
-    if (me.id !== userId) {
-      throw new Error(`/api/me returned unexpected id ${me.id} (expected ${userId})`);
+    console.log(`[setup ${userId}] /api/me → id=${me.id} name="${me.name}" (actualUserId=${actualUserId})`);
+    if (me.id !== actualUserId) {
+      throw new Error(`/api/me returned id ${me.id} but expected actualUserId ${actualUserId}`);
     }
 
     await page.goto(isAdmin ? `${BASE}/admin/dashboard` : `${BASE}/home`);
