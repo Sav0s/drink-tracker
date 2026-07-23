@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
 import { LoadingState } from "@/components/LoadingState";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { AppBar } from "@/components/AppBar";
 
 export default function AccountPage() {
@@ -14,7 +15,9 @@ export default function AccountPage() {
   const [originalName, setOriginalName] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export default function AccountPage() {
         setOriginalName(n);
         setName(n);
       })
-      .catch(() => {})
+      .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -49,6 +52,7 @@ export default function AccountPage() {
   async function save() {
     if (!canSave) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const res = await fetch("/api/me", {
         method: "PATCH",
@@ -59,9 +63,11 @@ export default function AccountPage() {
         const me = await res.json();
         setOriginalName(me.name);
         setName(me.name);
+      } else {
+        setSaveError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
       }
     } catch {
-      /* ignore */
+      setSaveError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
     } finally {
       setSaving(false);
     }
@@ -75,6 +81,8 @@ export default function AccountPage() {
         <Box w="full" maxW="440px" mx="auto" px={5} pt={10} pb={8}>
           {loading ? (
             <LoadingState minH="320px" />
+          ) : loadError ? (
+            <ErrorBanner message={loadError} onRetry={() => window.location.reload()} />
           ) : (
             <>
               {/* Profile head */}
@@ -154,6 +162,12 @@ export default function AccountPage() {
                   So erscheinst du in der Spielerliste und in der Abrechnung.
                 </Text>
               </Box>
+
+              {saveError && (
+                <Box mt={4}>
+                  <ErrorBanner message={saveError} />
+                </Box>
+              )}
 
               {/* Action buttons */}
               <Flex gap={3} mt={6} justifyContent="flex-end">

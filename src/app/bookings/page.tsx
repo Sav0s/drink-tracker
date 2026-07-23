@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronRight, Check, RotateCcw } from "lucide-react";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
@@ -37,6 +38,7 @@ export default function ProfilePage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -52,7 +54,7 @@ export default function ProfilePage() {
     fetch("/api/bookings")
       .then((r) => r.json())
       .then((data) => setPeriods(data.periods ?? []))
-      .catch(() => {})
+      .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
       .finally(() => setLoading(false));
   }, [router]);
 
@@ -99,6 +101,8 @@ export default function ProfilePage() {
 
         {loading ? (
           <LoadingState minH="280px" />
+        ) : loadError ? (
+          <ErrorBanner message={loadError} onRetry={() => window.location.reload()} />
         ) : (
           <>
         {/* Balance card */}

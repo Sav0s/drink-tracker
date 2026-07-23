@@ -136,4 +136,20 @@ describe('BookingsPage', () => {
       )
     );
   });
+
+  it('shows an error banner when /api/bookings fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve({ name: 'Fabi' }) });
+        if (url === '/api/bookings') return Promise.reject(new Error('network error'));
+        return Promise.reject(new Error(`Unhandled: ${url}`));
+      })
+    );
+
+    render(<BookingsPage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+  });
 });

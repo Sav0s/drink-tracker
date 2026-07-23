@@ -128,4 +128,44 @@ describe('HomePage', () => {
 
     expect(await screen.findByText('Willkommen in der Kabinen-Bar')).toBeInTheDocument();
   });
+
+  it('shows an error banner when /api/home fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === '/api/home') return Promise.reject(new Error('network error'));
+        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve(meResponse) });
+        return Promise.resolve({ json: () => Promise.resolve({}) });
+      })
+    );
+
+    render(<HomePage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neu laden' })).toBeInTheDocument();
+  });
+
+  it('reverts optimistic booking update and shows error toast when booking fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        if (url === '/api/home') return Promise.resolve({ json: () => Promise.resolve(homeResponse) });
+        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve(meResponse) });
+        if (url === '/api/bookings' && init?.method === 'POST') return Promise.reject(new Error('server error'));
+        return Promise.resolve({ json: () => Promise.resolve({}) });
+      })
+    );
+
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await screen.findByText('Bier');
+    await user.click(screen.getByText('Bier'));
+
+    // Error toast appears
+    expect(await screen.findByText(/Buchung fehlgeschlagen/)).toBeInTheDocument();
+    // Undo toast is gone (reverted)
+    expect(screen.queryByText(/Bier gebucht/)).not.toBeInTheDocument();
+  });
 });

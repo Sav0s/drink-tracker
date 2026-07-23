@@ -118,4 +118,45 @@ describe('AccountPage', () => {
     await user.click(screen.getByText('Verlassen'));
     expect(push).toHaveBeenCalledWith('/home');
   });
+
+  it('shows an error banner when /api/me fails to load', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        if (url === '/api/me' && !init?.method) return Promise.reject(new Error('network error'));
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      })
+    );
+
+    render(<AccountPage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+  });
+
+  it('shows a save error when PATCH /api/me fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        if (url === '/api/me' && !init?.method) {
+          return Promise.resolve({ json: () => Promise.resolve({ name: 'Fabi', isAdmin: false }) });
+        }
+        if (url === '/api/me' && init?.method === 'PATCH') {
+          return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: 'Internal server error' }) });
+        }
+        return Promise.reject(new Error(`Unhandled: ${url}`));
+      })
+    );
+
+    const user = userEvent.setup();
+    render(<AccountPage />);
+    const input = await screen.findByDisplayValue('Fabi');
+
+    await user.clear(input);
+    await user.type(input, 'Fabian');
+    await user.click(screen.getByText('Speichern'));
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Speichern fehlgeschlagen/)).toBeInTheDocument();
+  });
 });
