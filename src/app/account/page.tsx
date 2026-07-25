@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text, Input } from "@chakra-ui/react";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
+import { apiFetch, ApiFetchError, API_ACTION, type ApiAction } from "@/lib/apiFetch";
 import { LoadingState } from "@/components/LoadingState";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { AppBar } from "@/components/AppBar";
 
 export default function AccountPage() {
@@ -14,25 +16,38 @@ export default function AccountPage() {
   const [originalName, setOriginalName] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ message: string; action: ApiAction } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
+
+  const loadAccount = useCallback(() => {
+    apiFetch("/api/me")
+      .then((me) => {
+        const n = me?.name ?? "";
+        setOriginalName(n);
+        setName(n);
+      })
+      .catch((err: unknown) => {
+        const e = err instanceof ApiFetchError ? err : new ApiFetchError("Laden fehlgeschlagen.");
+        setLoadError({ message: e.message, action: e.action });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  function retryAccount() {
+    setLoading(true);
+    setLoadError(null);
+    loadAccount();
+  }
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.push(ROUTES.LOGIN);
     });
-
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((me) => {
-        const n = me?.name ?? "";
-        setOriginalName(n);
-        setName(n);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [router]);
+    loadAccount();
+  }, [router, loadAccount]);
 
   const trimmed = name.trim();
   const dirty = name !== originalName;
@@ -49,19 +64,21 @@ export default function AccountPage() {
   async function save() {
     if (!canSave) return;
     setSaving(true);
+    setSaveError(null);
     try {
-      const res = await fetch("/api/me", {
+      const me = await apiFetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed }),
       });
-      if (res.ok) {
-        const me = await res.json();
-        setOriginalName(me.name);
-        setName(me.name);
-      }
-    } catch {
-      /* ignore */
+      setOriginalName(me.name);
+      setName(me.name);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiFetchError && err.status === 401
+          ? "Sitzung abgelaufen. Bitte neu einloggen."
+          : "Speichern fehlgeschlagen. Bitte erneut versuchen.";
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -75,6 +92,15 @@ export default function AccountPage() {
         <Box w="full" maxW="440px" mx="auto" px={5} pt={10} pb={8}>
           {loading ? (
             <LoadingState minH="320px" />
+          ) : loadError ? (
+            <ErrorBanner
+              message={loadError.message}
+              action={
+                loadError.action === API_ACTION.LOGIN
+                  ? { label: "Einloggen", onClick: () => router.push(ROUTES.LOGIN) }
+                  : { label: "Neu laden", onClick: retryAccount }
+              }
+            />
           ) : (
             <>
               {/* Profile head */}
@@ -154,6 +180,12 @@ export default function AccountPage() {
                   So erscheinst du in der Spielerliste und in der Abrechnung.
                 </Text>
               </Box>
+
+              {saveError && (
+                <Box mt={4}>
+                  <ErrorBanner message={saveError} />
+                </Box>
+              )}
 
               {/* Action buttons */}
               <Flex gap={3} mt={6} justifyContent="flex-end">

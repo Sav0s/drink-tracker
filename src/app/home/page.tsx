@@ -4,10 +4,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text, Input } from "@chakra-ui/react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Pencil, Check } from "lucide-react";
+import { Plus, Pencil, Check, AlertCircle } from "lucide-react";
 import { formatCents } from "@/types";
 import { ROUTES, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
+import { apiFetch, ApiFetchError, API_ACTION, type ApiAction } from "@/lib/apiFetch";
 import { LoadingState } from "@/components/LoadingState";
+import { ErrorBanner } from "@/components/ErrorBanner";
 import { AppBar } from "@/components/AppBar";
 
 interface DrinkState {
@@ -71,18 +73,14 @@ export default function HauptseiteePage() {
   const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
   const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ message: string; action: ApiAction } | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const [welcomeSaving, setWelcomeSaving] = useState(false);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) router.push(ROUTES.LOGIN);
-    });
-
-    fetch("/api/home")
-      .then((r) => r.json())
+  const loadData = useCallback(() => {
+    apiFetch("/api/home")
       .then((data) => {
         setDrinks(data.drinks ?? []);
         setClosedPeriodNotice(data.closedPeriod ?? null);
@@ -92,9 +90,26 @@ export default function HauptseiteePage() {
           setWelcomeOpen(true);
         }
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        const e = err instanceof ApiFetchError ? err : new ApiFetchError("Laden fehlgeschlagen.");
+        setLoadError({ message: e.message, action: e.action });
+      })
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
+
+  function retryLoad() {
+    setLoading(true);
+    setLoadError(null);
+    loadData();
+  }
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) router.push(ROUTES.LOGIN);
+    });
+    loadData();
+  }, [router, loadData]);
 
   async function finishWelcome() {
     const trimmed = welcomeName.trim();
@@ -131,11 +146,21 @@ export default function HauptseiteePage() {
       setDrinks((prev) =>
         prev.map((d) => (d.id === drink.id ? { ...d, count: d.count + 1 } : d))
       );
-      fetch("/api/bookings", {
+      apiFetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ drinkId: drink.id }),
-      }).catch(() => {});
+      }).catch((err: unknown) => {
+        setDrinks((prev) =>
+          prev.map((d) => (d.id === drink.id ? { ...d, count: Math.max(0, d.count - 1) } : d))
+        );
+        setToast(null);
+        const msg =
+          err instanceof ApiFetchError && err.status === 401
+            ? "Sitzung abgelaufen. Bitte neu einloggen."
+            : "Buchung fehlgeschlagen. Bitte erneut versuchen.";
+        setBookingError(msg);
+      });
       if (toastTimer) clearTimeout(toastTimer);
       setToast({ drink });
       const t = setTimeout(() => setToast(null), 3500);
@@ -171,6 +196,17 @@ export default function HauptseiteePage() {
 
       {loading ? (
         <LoadingState minH="320px" />
+      ) : loadError ? (
+        <Box px={5} pt={8}>
+          <ErrorBanner
+            message={loadError.message}
+            action={
+              loadError.action === API_ACTION.LOGIN
+                ? { label: "Einloggen", onClick: () => router.push(ROUTES.LOGIN) }
+                : { label: "Neu laden", onClick: retryLoad }
+            }
+          />
+        </Box>
       ) : (
         <>
           {/* Saldo hero */}
@@ -292,6 +328,41 @@ export default function HauptseiteePage() {
             onClick={undoBooking}
           >
             Rückgängig
+          </Box>
+        </Flex>
+      )}
+
+      {/* Booking error toast */}
+      {bookingError && (
+        <Flex
+          position="fixed"
+          bottom="24px"
+          left="50%"
+          transform="translateX(-50%)"
+          bg="#1e1316"
+          border="1px solid rgba(224,83,95,0.35)"
+          borderRadius="12px"
+          px={4}
+          py="12px"
+          alignItems="center"
+          gap="10px"
+          minW="280px"
+          boxShadow="0 8px 24px -12px rgba(0,0,0,0.55)"
+          zIndex={100}
+          role="alert"
+        >
+          <AlertCircle size={16} color="#e0535f" />
+          <Text flex={1} fontSize="14px" color="#e0535f">{bookingError}</Text>
+          <Box
+            as="button"
+            bg="none"
+            border="none"
+            cursor="pointer"
+            color="#939dab"
+            fontSize="14px"
+            onClick={() => setBookingError(null)}
+          >
+            ✕
           </Box>
         </Flex>
       )}
