@@ -96,6 +96,10 @@ describe('LoginPage', () => {
     await user.type(screen.getByPlaceholderText('deine@email.de'), 'fabi@example.com');
     await user.click(screen.getByText('Code senden'));
     await waitFor(() => expect(screen.getAllByTestId(/otp-digit-/)).toHaveLength(6));
+    // The page's own useEffect auto-focuses digit 0 via a setTimeout(80ms) once
+    // the OTP step mounts. Let it fire before typing, so it can't race the
+    // typing loop below and steal focus back to digit 0 mid-sequence.
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const inputs = screen.getAllByTestId(/otp-digit-/);
     for (const [i, input] of inputs.entries()) {
@@ -119,6 +123,8 @@ describe('LoginPage', () => {
     await user.type(screen.getByPlaceholderText('deine@email.de'), 'fabi@example.com');
     await user.click(screen.getByText('Code senden'));
     await waitFor(() => expect(screen.getAllByTestId(/otp-digit-/)).toHaveLength(6));
+    // See the comment in the previous test — let the auto-focus timer fire first.
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const inputs = screen.getAllByTestId(/otp-digit-/);
     for (const [i, input] of inputs.entries()) {
