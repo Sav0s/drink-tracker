@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { withErrorLogging } from "@/lib/withErrorLogging";
 
 /** GET → per-member booking + payment breakdown for the given billing period. */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function getMembers(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAdmin();
   if (error) return error;
 
@@ -52,3 +53,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ members });
 }
+
+export const GET = withErrorLogging("GET /api/admin/billing-periods/[id]/members", getMembers);
