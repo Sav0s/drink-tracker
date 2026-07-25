@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { prisma } from '@/lib/prisma';
-import { seedPlayer } from '@/test-integration-helpers';
+import { seedPlayer, seedActivePeriod } from '@/test-integration-helpers';
 
 const getUser = vi.fn();
 
@@ -36,11 +36,23 @@ describe('/api/admin/billing-periods', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST opens a new active period and closes the previously active one', async () => {
+  it('POST rejects with 409 when a period is already active', async () => {
     const admin = await seedPlayer({ isAdmin: true });
     getUser.mockResolvedValue({ data: { user: { id: admin.id } } });
-    const oldPeriod = await prisma.billingPeriod.create({
-      data: { startDate: new Date('2026-06-01'), status: 'active' },
+    await seedActivePeriod({ startDate: new Date('2026-06-01') });
+
+    const res = await POST(postRequest({ startDate: '2026-07-01' }));
+
+    expect(res.status).toBe(409);
+    const activePeriods = await prisma.billingPeriod.findMany({ where: { status: 'active' } });
+    expect(activePeriods).toHaveLength(1);
+  });
+
+  it('POST opens a new active period once none is active', async () => {
+    const admin = await seedPlayer({ isAdmin: true });
+    getUser.mockResolvedValue({ data: { user: { id: admin.id } } });
+    await prisma.billingPeriod.create({
+      data: { startDate: new Date('2026-01-01'), endDate: new Date('2026-02-01'), status: 'closed' },
     });
 
     const res = await POST(
@@ -48,27 +60,9 @@ describe('/api/admin/billing-periods', () => {
     );
     expect(res.status).toBe(200);
 
-    const closed = await prisma.billingPeriod.findUnique({ where: { id: oldPeriod.id } });
-    expect(closed?.status).toBe('closed');
-    // Closing without an explicit endDate falls back to the new period's startDate.
-    expect(closed?.endDate?.toISOString().slice(0, 10)).toBe('2026-07-01');
-
     const activePeriods = await prisma.billingPeriod.findMany({ where: { status: 'active' } });
     expect(activePeriods).toHaveLength(1);
     expect(activePeriods[0]).toMatchObject({ paymentInstructions: 'IBAN X' });
-  });
-
-  it('POST does not touch already-closed periods', async () => {
-    const admin = await seedPlayer({ isAdmin: true });
-    getUser.mockResolvedValue({ data: { user: { id: admin.id } } });
-    const longClosed = await prisma.billingPeriod.create({
-      data: { startDate: new Date('2026-01-01'), endDate: new Date('2026-02-01'), status: 'closed' },
-    });
-
-    await POST(postRequest({ startDate: '2026-07-01' }));
-
-    const stillClosed = await prisma.billingPeriod.findUnique({ where: { id: longClosed.id } });
-    expect(stillClosed?.endDate?.toISOString().slice(0, 10)).toBe('2026-02-01');
   });
 
   it('GET returns 401 when not authenticated', async () => {
@@ -79,7 +73,7 @@ describe('/api/admin/billing-periods', () => {
     expect(res.status).toBe(401);
   });
 
-  it('GET lists periods newest first', async () => {
+  it('GET lists periods newest first with raw startDate/endDate', async () => {
     const admin = await seedPlayer({ isAdmin: true });
     getUser.mockResolvedValue({ data: { user: { id: admin.id } } });
     await prisma.billingPeriod.createMany({
@@ -93,7 +87,7 @@ describe('/api/admin/billing-periods', () => {
     const body = await res.json();
 
     expect(body.periods).toHaveLength(2);
-    expect(body.periods[0].status).toBe('active');
-    expect(body.periods[1].status).toBe('closed');
+    expect(body.periods[0]).toMatchObject({ status: 'active', startDate: '2026-06-01', endDate: null });
+    expect(body.periods[1]).toMatchObject({ status: 'closed', startDate: '2026-05-01', endDate: '2026-06-01' });
   });
 });

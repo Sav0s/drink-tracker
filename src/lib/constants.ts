@@ -33,6 +33,9 @@ export const API_ERROR = {
   NAME_AND_PRICE_REQUIRED: "name and price_cents required",
   NAME_REQUIRED: "name required",
   PAYMENT_FIELDS_REQUIRED: "playerId, periodId, paid required",
+  PERIOD_NOT_ACTIVE: "Billing period is not active",
+  END_DATE_BEFORE_START: "endDate must not be before startDate",
+  ACTIVE_PERIOD_EXISTS: "An active billing period already exists",
   INTERNAL_ERROR: "Internal server error",
 } as const;
 

@@ -74,7 +74,7 @@ const membersByPeriod: Record<string, unknown[]> = {
   ],
 };
 
-function mockFetch({ isAdmin = true } = {}) {
+function mockFetch({ isAdmin = true, periodsOverride = periods } = {}) {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
@@ -92,7 +92,7 @@ function mockFetch({ isAdmin = true } = {}) {
         return Promise.resolve({ json: () => Promise.resolve({}) });
       }
       if (url === '/api/admin/billing-periods' && method === 'GET') {
-        return Promise.resolve({ json: () => Promise.resolve({ periods }) });
+        return Promise.resolve({ json: () => Promise.resolve({ periods: periodsOverride }) });
       }
       if (url === '/api/admin/billing-periods' && method === 'POST') {
         return Promise.resolve({ json: () => Promise.resolve({}) });
@@ -244,7 +244,10 @@ describe('AdminDashboardPage', () => {
   });
 
   it('creates a new billing period, defaulting payment instructions from the last period', async () => {
-    mockFetch();
+    // No active period in this fixture — with one active, "Neue Abrechnung" now
+    // opens the "Aktive Abrechnung vorhanden" info modal instead of the create
+    // form (Task 5's active-period gate on openNewPeriod).
+    mockFetch({ periodsOverride: [periods[1]] });
     const user = userEvent.setup();
     render(<AdminDashboardPage />);
     await screen.findByText('Bier');

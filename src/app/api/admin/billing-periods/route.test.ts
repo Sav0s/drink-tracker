@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const requireAdmin = vi.fn();
 const findFirst = vi.fn();
-const update = vi.fn();
 const create = vi.fn();
 
 vi.mock('@/lib/auth', () => ({ requireAdmin }));
 vi.mock('@/lib/prisma', () => ({
-  prisma: { billingPeriod: { findFirst, update, create, findMany: vi.fn() } },
+  prisma: { billingPeriod: { findFirst, create, findMany: vi.fn() } },
 }));
 vi.mock('@/lib/logger');
 
@@ -22,46 +21,32 @@ describe('POST /api/admin/billing-periods', () => {
   beforeEach(() => {
     requireAdmin.mockReset();
     findFirst.mockReset();
-    update.mockReset();
     create.mockReset();
     vi.mocked(logger.info).mockReset();
   });
 
-  it('closes the previous active period by id, then logs billing_period_closed and billing_period_opened', async () => {
+  it('opens a new period and logs billing_period_opened when none is active', async () => {
     requireAdmin.mockResolvedValue({ player: { id: 'admin-1', isAdmin: true } });
-    findFirst.mockResolvedValue({ id: 'old-period' });
-    update.mockResolvedValue({});
+    findFirst.mockResolvedValue(null);
     create.mockResolvedValue({ id: 'new-period' });
 
     const res = await POST(postRequest({ startDate: '2026-07-01', endDate: null, paymentInstructions: 'IBAN X' }));
 
     expect(res.status).toBe(200);
-    expect(update).toHaveBeenCalledWith({
-      where: { id: 'old-period' },
-      data: { status: 'closed', endDate: new Date('2026-07-01') },
-    });
-    expect(logger.info).toHaveBeenNthCalledWith(1, 'billing_period_closed', {
-      userId: 'admin-1',
-      meta: { periodId: 'old-period' },
-    });
-    expect(logger.info).toHaveBeenNthCalledWith(2, 'billing_period_opened', {
+    expect(logger.info).toHaveBeenCalledWith('billing_period_opened', {
       userId: 'admin-1',
       meta: { periodId: 'new-period', startDate: '2026-07-01', endDate: null },
     });
   });
 
-  it('skips billing_period_closed when there was no active period', async () => {
+  it('rejects with 409 and does not create or log when a period is already active', async () => {
     requireAdmin.mockResolvedValue({ player: { id: 'admin-1', isAdmin: true } });
-    findFirst.mockResolvedValue(null);
-    create.mockResolvedValue({ id: 'new-period' });
+    findFirst.mockResolvedValue({ id: 'old-period' });
 
-    await POST(postRequest({ startDate: '2026-07-01' }));
+    const res = await POST(postRequest({ startDate: '2026-07-01' }));
 
-    expect(update).not.toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledTimes(1);
-    expect(logger.info).toHaveBeenCalledWith('billing_period_opened', {
-      userId: 'admin-1',
-      meta: { periodId: 'new-period', startDate: '2026-07-01', endDate: null },
-    });
+    expect(res.status).toBe(409);
+    expect(create).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalled();
   });
 });

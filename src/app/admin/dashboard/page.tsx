@@ -30,6 +30,8 @@ interface PeriodRow {
   range: string;
   status: PeriodStatus;
   paymentInstructions: string | null;
+  startDate: string;
+  endDate: string | null;
 }
 
 /* ─── Toggle ─── */
@@ -138,6 +140,14 @@ function AdminDashboardContent() {
   const [editPrice,  setEditPrice]  = useState("");
   const [editActive, setEditActive] = useState(true);
 
+  // Edit-period modal
+  const [editPeriodOpen,  setEditPeriodOpen]  = useState(false);
+  const [editPeriodStart, setEditPeriodStart] = useState("");
+  const [editPeriodEnd,   setEditPeriodEnd]   = useState("");
+  const [editPeriodNote,  setEditPeriodNote]  = useState("");
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showActiveExists, setShowActiveExists] = useState(false);
+
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
@@ -237,12 +247,22 @@ function AdminDashboardContent() {
     setEditDrink(null);
   }
 
+  function activePeriod() {
+    return periods.find((p) => p.status === PERIOD_STATUS.ACTIVE) ?? null;
+  }
+
   function openNewPeriod() {
-    // When opening the form, default the payment instructions to the most recent
-    // period that has them (so the admin doesn't retype them every time).
-    if (!showNew && !payNote) {
-      const last = periods.find((p) => p.paymentInstructions);
-      if (last?.paymentInstructions) setPayNote(last.paymentInstructions);
+    if (!showNew) {
+      if (activePeriod()) {
+        setShowActiveExists(true);
+        return;
+      }
+      // When opening the form, default the payment instructions to the most recent
+      // period that has them (so the admin doesn't retype them every time).
+      if (!payNote) {
+        const last = periods.find((p) => p.paymentInstructions);
+        if (last?.paymentInstructions) setPayNote(last.paymentInstructions);
+      }
     }
     setShowNew((v) => !v);
   }
@@ -265,6 +285,49 @@ function AdminDashboardContent() {
         setStartDate(""); setEndDate(""); setPayNote("");
       })
       .catch(() => {});
+  }
+
+  function openEditPeriod() {
+    const period = activePeriod();
+    if (!period) return;
+    setEditPeriodStart(period.startDate);
+    setEditPeriodEnd(period.endDate ?? "");
+    setEditPeriodNote(period.paymentInstructions ?? "");
+    setEditPeriodOpen(true);
+  }
+
+  function saveEditPeriod() {
+    const period = activePeriod();
+    if (!period || !editPeriodStart) return;
+    fetch(`/api/admin/billing-periods/${period.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startDate: editPeriodStart,
+        endDate: editPeriodEnd || null,
+        paymentInstructions: editPeriodNote || null,
+      }),
+    })
+      .then(() => reloadPeriods())
+      .catch(() => {});
+    setEditPeriodOpen(false);
+  }
+
+  function closeActivePeriod() {
+    const period = activePeriod();
+    if (!period) return;
+    fetch(`/api/admin/billing-periods/${period.id}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endDate: editPeriodEnd || null }),
+    })
+      .then(() => {
+        reloadPeriods();
+        setSelPeriod(0);
+      })
+      .catch(() => {});
+    setShowCloseConfirm(false);
+    setEditPeriodOpen(false);
   }
 
   function markPaid(id: string, paid: boolean) {
@@ -510,6 +573,26 @@ function AdminDashboardContent() {
                 <Plus size={14} />
                 Neue Abrechnung
               </Flex>
+
+              {activePeriod() && (
+                <Flex
+                  as="button"
+                  alignItems="center"
+                  gap="6px"
+                  bg="none"
+                  border="1px solid rgba(255,255,255,0.12)"
+                  borderRadius="12px"
+                  px="14px"
+                  py={2}
+                  fontSize="14px"
+                  color="#eaedf2"
+                  cursor="pointer"
+                  onClick={openEditPeriod}
+                >
+                  <Pencil size={14} />
+                  Bearbeiten
+                </Flex>
+              )}
             </Flex>
 
             {/* New period form */}
@@ -855,6 +938,250 @@ function AdminDashboardContent() {
                   Speichern
                 </Box>
               </Flex>
+            </Box>
+          </Flex>
+        </>
+      )}
+
+      {/* Edit-period modal */}
+      {editPeriodOpen && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.65)"
+            zIndex={200}
+            onClick={() => setEditPeriodOpen(false)}
+          />
+          <Flex
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            alignItems="center"
+            justifyContent="center"
+            px={5}
+            zIndex={201}
+          >
+            <Box
+              w="full"
+              maxW="380px"
+              bg="#141921"
+              border="1px solid rgba(255,255,255,0.1)"
+              borderRadius="16px"
+              p={5}
+              boxShadow="0 16px 40px -12px rgba(0,0,0,0.7)"
+            >
+              <Text fontSize="17px" fontWeight="700" color="#eaedf2" mb={4}>
+                Abrechnung bearbeiten
+              </Text>
+
+              <Flex gap={3} mb={4}>
+                <Box flex={1}>
+                  <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                    Startdatum
+                  </Text>
+                  <FieldInput type="date" value={editPeriodStart} onChange={setEditPeriodStart} />
+                </Box>
+                <Box flex={1}>
+                  <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                    Enddatum
+                  </Text>
+                  <FieldInput type="date" value={editPeriodEnd} onChange={setEditPeriodEnd} />
+                </Box>
+              </Flex>
+
+              <Text fontSize="11px" fontWeight="700" letterSpacing="0.08em" textTransform="uppercase" color="#5a6473" mb="6px">
+                Zahlungshinweise
+              </Text>
+              <Textarea
+                rows={3}
+                placeholder="IBAN, PayPal, Empfänger…"
+                value={editPeriodNote}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditPeriodNote(e.target.value)}
+                w="full"
+                bg="#1a202a"
+                border="1px solid rgba(255,255,255,0.12)"
+                borderRadius="8px"
+                px="12px"
+                py="10px"
+                fontSize="14px"
+                color="#eaedf2"
+                outline="none"
+                resize="vertical"
+                mb={5}
+              />
+
+              <Box
+                as="button"
+                w="full"
+                h="42px"
+                borderRadius="10px"
+                fontSize="14px"
+                fontWeight="700"
+                bg="rgba(224,83,95,0.12)"
+                color="#e0535f"
+                border="1px solid rgba(224,83,95,0.3)"
+                cursor="pointer"
+                mb={5}
+                onClick={() => setShowCloseConfirm(true)}
+              >
+                Als abgeschlossen markieren
+              </Box>
+
+              <Flex gap={3} justifyContent="flex-end">
+                <Box
+                  as="button"
+                  h="42px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  bg="transparent"
+                  color="#939dab"
+                  border="1px solid rgba(255,255,255,0.16)"
+                  cursor="pointer"
+                  onClick={() => setEditPeriodOpen(false)}
+                >
+                  Abbrechen
+                </Box>
+                <Box
+                  as="button"
+                  h="42px"
+                  px={5}
+                  borderRadius="10px"
+                  fontSize="14px"
+                  fontWeight="700"
+                  bg="#6478a0"
+                  color="white"
+                  border="none"
+                  cursor="pointer"
+                  onClick={saveEditPeriod}
+                >
+                  Speichern
+                </Box>
+              </Flex>
+            </Box>
+          </Flex>
+        </>
+      )}
+
+      {/* Close-period confirmation modal */}
+      {showCloseConfirm && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.6)"
+            zIndex={300}
+            onClick={() => setShowCloseConfirm(false)}
+          />
+          <Flex
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            alignItems="center"
+            justifyContent="center"
+            px={6}
+            zIndex={301}
+          >
+            <Box
+              w="full"
+              maxW="340px"
+              bg="#151a21"
+              border="1px solid rgba(255,255,255,0.09)"
+              borderRadius="16px"
+              p={5}
+              boxShadow="0 16px 40px -12px rgba(0,0,0,0.7)"
+            >
+              <Text fontSize="17px" fontWeight="700" color="#eaedf2" mb={2}>
+                Abrechnung abschließen
+              </Text>
+              <Text fontSize="14px" color="#939dab" mb={5}>
+                Diese Abrechnung wird abgeschlossen und kann nicht mehr bearbeitet werden. Fortfahren?
+              </Text>
+              <Flex gap={3}>
+                <Box
+                  as="button"
+                  flex={1}
+                  h="46px"
+                  borderRadius="10px"
+                  fontSize="15px"
+                  fontWeight="700"
+                  bg="#1b212b"
+                  color="#eaedf2"
+                  border="1px solid rgba(255,255,255,0.16)"
+                  cursor="pointer"
+                  onClick={() => setShowCloseConfirm(false)}
+                >
+                  Abbrechen
+                </Box>
+                <Box
+                  as="button"
+                  flex={1}
+                  h="46px"
+                  borderRadius="10px"
+                  fontSize="15px"
+                  fontWeight="700"
+                  bg="#e0535f"
+                  color="white"
+                  border="none"
+                  cursor="pointer"
+                  onClick={closeActivePeriod}
+                >
+                  Abschließen
+                </Box>
+              </Flex>
+            </Box>
+          </Flex>
+        </>
+      )}
+
+      {/* Active-period-exists info modal */}
+      {showActiveExists && (
+        <>
+          <Box
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            bg="rgba(0,0,0,0.6)"
+            zIndex={300}
+            onClick={() => setShowActiveExists(false)}
+          />
+          <Flex
+            position="fixed"
+            top={0} left={0} right={0} bottom={0}
+            alignItems="center"
+            justifyContent="center"
+            px={6}
+            zIndex={301}
+          >
+            <Box
+              w="full"
+              maxW="340px"
+              bg="#151a21"
+              border="1px solid rgba(255,255,255,0.09)"
+              borderRadius="16px"
+              p={5}
+              boxShadow="0 16px 40px -12px rgba(0,0,0,0.7)"
+            >
+              <Text fontSize="17px" fontWeight="700" color="#eaedf2" mb={2}>
+                Aktive Abrechnung vorhanden
+              </Text>
+              <Text fontSize="14px" color="#939dab" mb={5}>
+                Es gibt bereits eine aktive Abrechnungsperiode. Bitte schließe sie zuerst ab, bevor du eine neue erstellst.
+              </Text>
+              <Box
+                as="button"
+                w="full"
+                h="46px"
+                borderRadius="10px"
+                fontSize="15px"
+                fontWeight="700"
+                bg="#6478a0"
+                color="white"
+                border="none"
+                cursor="pointer"
+                onClick={() => setShowActiveExists(false)}
+              >
+                Okay
+              </Box>
             </Box>
           </Flex>
         </>

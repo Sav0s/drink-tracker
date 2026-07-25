@@ -18,13 +18,16 @@ async function getBillingPeriods() {
       range: formatPeriodRange(p.startDate, p.endDate),
       status: p.status,
       paymentInstructions: p.paymentInstructions,
+      startDate: p.startDate.toISOString().slice(0, 10),
+      endDate: p.endDate ? p.endDate.toISOString().slice(0, 10) : null,
     })),
   });
 }
 
 /**
- * POST { startDate, endDate, paymentInstructions } → closes the current
- * active period (if any) and opens a new one.
+ * POST { startDate, endDate, paymentInstructions } → opens a new active
+ * period. Fails with 409 if one is already active — the admin must mark
+ * it done (POST .../[id]/close) first.
  */
 async function postBillingPeriod(request: Request) {
   const { player, error } = await requireAdmin();
@@ -33,19 +36,9 @@ async function postBillingPeriod(request: Request) {
   const { startDate, endDate, paymentInstructions } = await request.json();
   if (!startDate) return NextResponse.json({ error: API_ERROR.START_DATE_REQUIRED }, { status: 400 });
 
-  // getActivePeriod() (not updateMany) so we get the previous period's id
-  // back to log it. Only one period is ever active at a time (app invariant),
-  // so this closes the same row updateMany would have — no behavior change.
-  const previousActive = await getActivePeriod();
-  if (previousActive) {
-    await prisma.billingPeriod.update({
-      where: { id: previousActive.id },
-      data: { status: PERIOD_STATUS.CLOSED, endDate: endDate ? new Date(endDate) : new Date(startDate) },
-    });
-    logger.info(LOG_EVENT.BILLING_PERIOD_CLOSED, {
-      userId: player.id,
-      meta: { periodId: previousActive.id },
-    });
+  const activePeriod = await getActivePeriod();
+  if (activePeriod) {
+    return NextResponse.json({ error: API_ERROR.ACTIVE_PERIOD_EXISTS }, { status: 409 });
   }
 
   const period = await prisma.billingPeriod.create({
