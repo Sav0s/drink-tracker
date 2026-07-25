@@ -42,6 +42,7 @@ export const ROUTES = {
   BOOKINGS: "/bookings",
   ACCOUNT: "/account",
   ADMIN_DASHBOARD: "/admin/dashboard",
+  AUTH_CALLBACK: "/auth/callback",
 } as const;
 
 /** Route prefixes guarded by src/proxy.ts — unauthenticated users are redirected to ROUTES.LOGIN. */

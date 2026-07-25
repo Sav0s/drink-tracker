@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Box, Flex, Text, Input, Image } from "@chakra-ui/react";
 import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CLUB_NAME } from "@/lib/constants";
+import { CLUB_NAME, ROUTES } from "@/lib/constants";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -82,7 +82,7 @@ export default function LoginPage() {
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     } else {
       // Session is set — hand off to auth callback for player upsert + redirect
-      window.location.assign("/auth/callback");
+      window.location.assign(ROUTES.AUTH_CALLBACK);
     }
   }
 
@@ -122,7 +122,7 @@ export default function LoginPage() {
     const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!text) return;
     const next = Array(6).fill("");
-    text.split("").forEach((c, i) => { next[i] = c; });
+    for (let i = 0; i < text.length; i++) next[i] = text[i];
     updateDigits(next);
     inputRefs.current[Math.min(text.length, 5)]?.focus();
     if (text.length === 6) verifyCode(text);
@@ -132,9 +132,11 @@ export default function LoginPage() {
     const supabase = createClient();
     supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}${ROUTES.AUTH_CALLBACK}` },
     });
   }
+
+  const allFilled = digits.every(Boolean);
 
   return (
     <Flex minH="100dvh" flexDir="column" bg="#0d1014" px={5}>
@@ -210,13 +212,13 @@ export default function LoginPage() {
               justifyContent="center"
               h="52px"
               borderRadius="12px"
-              bg={digits.every((d) => d) ? "#0468b3" : "#1b212b"}
-              color={digits.every((d) => d) ? "white" : "#5c6675"}
+              bg={allFilled ? "#0468b3" : "#1b212b"}
+              color={allFilled ? "white" : "#5c6675"}
               border="none"
               fontSize="15px"
               fontWeight="700"
               opacity={loading ? 0.7 : 1}
-              cursor={loading || !digits.every((d) => d) ? "default" : "pointer"}
+              cursor={loading || !allFilled ? "default" : "pointer"}
               onClick={() => verifyCode(digits.join(""))}
             >
               {loading ? "Wird überprüft…" : "Bestätigen"}
@@ -230,7 +232,7 @@ export default function LoginPage() {
                 cursor="pointer"
                 color="#5c6675"
                 fontSize="13px"
-                onClick={() => { setStep("email"); setDigits(Array(6).fill("")); setError(""); }}
+                onClick={() => { setStep("email"); updateDigits(["", "", "", "", "", ""]); setError(""); }}
               >
                 Andere E-Mail
               </Box>
