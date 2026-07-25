@@ -19,6 +19,8 @@ test('admin marks a billing period done via Edit, then creates the next one', as
   await expect(page.locator('text=Aktiv').first()).toBeVisible({ timeout: 8_000 });
 
   // ── Creating another period while one is active is blocked ─────────────────
+  // "Neue Abrechnung" now lives inside the period picker's dropdown.
+  await page.locator('button').filter({ hasText: 'Aktiv' }).first().click();
   await page.locator('text=Neue Abrechnung').click();
   await expect(page.locator('text=Aktive Abrechnung vorhanden')).toBeVisible({ timeout: 8_000 });
   await page.getByRole('button', { name: 'Okay', exact: true }).click();
@@ -36,6 +38,8 @@ test('admin marks a billing period done via Edit, then creates the next one', as
   await expect(page.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0);
 
   // ── Creating the next period now works ──────────────────────────────────
+  // One (closed) period still exists, so "Neue Abrechnung" is inside the dropdown.
+  await page.locator('button').filter({ hasText: 'Abgeschlossen' }).first().click();
   await page.locator('text=Neue Abrechnung').click();
   await page.locator('input[type="date"]').first().fill('2026-08-01');
   await page.getByRole('button', { name: 'Abrechnung erstellen' }).click();

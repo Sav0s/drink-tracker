@@ -490,6 +490,25 @@ function AdminDashboardContent() {
 
               {/* Period picker */}
               <Box position="relative" ref={periodPickerRef}>
+                {periods.length === 0 ? (
+                  <Flex
+                    as="button"
+                    alignItems="center"
+                    gap="6px"
+                    bg="#141921"
+                    border="1px solid rgba(255,255,255,0.12)"
+                    borderRadius="12px"
+                    px="14px"
+                    py={2}
+                    cursor="pointer"
+                    fontSize="14px"
+                    color="#eaedf2"
+                    onClick={openNewPeriod}
+                  >
+                    <Plus size={14} />
+                    Neue Abrechnung
+                  </Flex>
+                ) : (
                 <Flex
                   as="button"
                   alignItems="center"
@@ -519,6 +538,7 @@ function AdminDashboardContent() {
                   </Text>
                   <ChevronDown size={16} color="#5a6473" />
                 </Flex>
+                )}
 
                 {periodOpen && (
                   <Box
@@ -552,27 +572,29 @@ function AdminDashboardContent() {
                         {p.range}
                       </Box>
                     ))}
+                    <Flex
+                      as="button"
+                      alignItems="center"
+                      gap="6px"
+                      w="full"
+                      textAlign="left"
+                      px="14px"
+                      py="10px"
+                      fontSize="14px"
+                      color="#eaedf2"
+                      bg="none"
+                      border="none"
+                      borderTop="1px solid rgba(255,255,255,0.12)"
+                      cursor="pointer"
+                      _hover={{ bg: "rgba(255,255,255,0.05)" }}
+                      onClick={() => { setPeriodOpen(false); openNewPeriod(); }}
+                    >
+                      <Plus size={14} />
+                      Neue Abrechnung
+                    </Flex>
                   </Box>
                 )}
               </Box>
-
-              <Flex
-                as="button"
-                alignItems="center"
-                gap="6px"
-                bg="none"
-                border="1px solid rgba(255,255,255,0.12)"
-                borderRadius="12px"
-                px="14px"
-                py={2}
-                fontSize="14px"
-                color="#eaedf2"
-                cursor="pointer"
-                onClick={openNewPeriod}
-              >
-                <Plus size={14} />
-                Neue Abrechnung
-              </Flex>
 
               {activePeriod() && (
                 <Flex
