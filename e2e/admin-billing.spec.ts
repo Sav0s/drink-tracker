@@ -33,7 +33,7 @@ test('admin marks a billing period done via Edit, then creates the next one', as
   // The picker now shows the closed period with an "Abgeschlossen" badge, and
   // "Bearbeiten" disappears since no period is active anymore.
   await expect(page.locator('text=Abgeschlossen').first()).toBeVisible({ timeout: 8_000 });
-  await expect(page.locator('text=Bearbeiten')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0);
 
   // ── Creating the next period now works ──────────────────────────────────
   await page.locator('text=Neue Abrechnung').click();
