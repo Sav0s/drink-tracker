@@ -12,9 +12,15 @@ export default function LoginPage() {
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const digitsRef = useRef(digits); // mirrors state; always current, no stale-closure risk
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null));
+
+  function updateDigits(next: string[]) {
+    digitsRef.current = next;
+    setDigits(next);
+  }
 
   useEffect(() => {
     if (step === "otp") {
@@ -49,13 +55,13 @@ export default function LoginPage() {
     }
     const ok = await sendOtp(trimmed);
     if (ok) {
-      setDigits(["", "", "", "", "", ""]);
+      updateDigits(["", "", "", "", "", ""]);
       setStep("otp");
     }
   }
 
   async function resendCode() {
-    setDigits(["", "", "", "", "", ""]);
+    updateDigits(["", "", "", "", "", ""]);
     await sendOtp(email.trim());
   }
 
@@ -72,7 +78,7 @@ export default function LoginPage() {
     if (e) {
       setLoading(false);
       setError("Ungültiger oder abgelaufener Code. Bitte versuche es erneut.");
-      setDigits(["", "", "", "", "", ""]);
+      updateDigits(["", "", "", "", "", ""]);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     } else {
       // Session is set — hand off to auth callback for player upsert + redirect
@@ -85,26 +91,28 @@ export default function LoginPage() {
     // iOS AutoFill fires a single change event with all 6 digits
     if (cleaned.length === 6) {
       const next = cleaned.split("");
-      setDigits(next);
+      updateDigits(next);
       if (error) setError("");
       inputRefs.current[5]?.focus();
       verifyCode(cleaned);
       return;
     }
     const digit = cleaned.slice(-1);
-    const next = [...digits];
+    // Read from ref, not the closure — ref is always current even if React
+    // hasn't committed the previous setDigits yet (stale-closure defence).
+    const next = [...digitsRef.current];
     next[index] = digit;
-    setDigits(next);
+    updateDigits(next);
     if (error) setError("");
     if (digit && index < 5) inputRefs.current[index + 1]?.focus();
     if (digit && next.every((d) => d)) verifyCode(next.join(""));
   }
 
   function handleDigitKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Backspace" && !digits[index] && index > 0) {
-      const next = [...digits];
+    if (e.key === "Backspace" && !digitsRef.current[index] && index > 0) {
+      const next = [...digitsRef.current];
       next[index - 1] = "";
-      setDigits(next);
+      updateDigits(next);
       inputRefs.current[index - 1]?.focus();
     }
   }
@@ -115,7 +123,7 @@ export default function LoginPage() {
     if (!text) return;
     const next = Array(6).fill("");
     text.split("").forEach((c, i) => { next[i] = c; });
-    setDigits(next);
+    updateDigits(next);
     inputRefs.current[Math.min(text.length, 5)]?.focus();
     if (text.length === 6) verifyCode(text);
   }
