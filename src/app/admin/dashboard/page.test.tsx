@@ -254,6 +254,8 @@ describe('AdminDashboardPage', () => {
     await user.click(screen.getByRole('button', { name: 'Abrechnung' }));
     await screen.findByText('Fabi');
 
+    // "Neue Abrechnung" now lives inside the period picker's dropdown.
+    await user.click(screen.getByText(periods[1].range));
     await user.click(screen.getByText('Neue Abrechnung'));
 
     expect(screen.getByDisplayValue('IBAN DE00')).toBeInTheDocument();
