@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
 import { getActivePeriod, formatPeriodRange, formatDateShort } from "@/lib/period";
+import { withErrorLogging } from "@/lib/withErrorLogging";
 import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
 
 /**
@@ -36,7 +37,7 @@ async function getUnpaidClosedPeriod(playerId: string) {
 }
 
 /** GET → active drinks with the current player's booking count in the active period. */
-export async function GET() {
+async function getHome() {
   const player = await getCurrentPlayer();
   if (!player) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
 
@@ -81,3 +82,5 @@ export async function GET() {
     closedPeriod,
   });
 }
+
+export const GET = withErrorLogging("GET /api/home", getHome);
