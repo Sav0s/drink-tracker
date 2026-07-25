@@ -1,16 +1,19 @@
 export type LogFields = { userId?: string; meta?: Record<string, unknown> };
 
-type LogEntry =
-  | { event: string; userId: string; meta: Record<string, unknown>; timestamp: string }
-  | { event: string; meta: Record<string, unknown>; timestamp: string };
+// JSON.stringify drops object keys whose value is undefined, so this
+// naturally omits userId from the emitted line when it wasn't provided.
+function buildEntry(event: string, fields?: LogFields) {
+  return {
+    event,
+    userId: fields?.userId,
+    meta: fields?.meta ?? {},
+    timestamp: new Date().toISOString(),
+  };
+}
 
-function buildEntry(event: string, fields?: LogFields): LogEntry {
-  const timestamp = new Date().toISOString();
-  const meta = fields?.meta ?? {};
-  if (fields?.userId !== undefined) {
-    return { event, userId: fields.userId, meta, timestamp };
-  }
-  return { event, meta, timestamp };
+/** Extracts a message from a caught value, whether or not it's an Error. */
+export function toErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
 
 /**

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
+import { logger, toErrorMessage } from "@/lib/logger";
 import { ROUTES, DEFAULT_PLAYER_NAME, LOG_EVENT } from "@/lib/constants";
 
 /** Creates the player row, ensuring the @unique name doesn't collide with an existing one. */
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(`${origin}${next}`);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = toErrorMessage(e);
     logger.error(LOG_EVENT.SERVER_ERROR, { meta: { route: "GET /auth/callback", message } });
     return NextResponse.redirect(`${origin}/login?error=callback`);
   }

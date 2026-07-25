@@ -6,7 +6,7 @@ const update = vi.fn();
 
 vi.mock('@/lib/auth', () => ({ requireAdmin }));
 vi.mock('@/lib/prisma', () => ({ prisma: { drink: { update } } }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
+vi.mock('@/lib/logger');
 
 const { PATCH } = await import('./route');
 const { logger } = await import('@/lib/logger');

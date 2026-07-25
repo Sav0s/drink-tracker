@@ -9,7 +9,7 @@ vi.mock('@/lib/auth', () => ({ requireAdmin }));
 vi.mock('@/lib/prisma', () => ({
   prisma: { billingPeriod: { findFirst, update, create, findMany: vi.fn() } },
 }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
+vi.mock('@/lib/logger');
 
 const { POST } = await import('./route');
 const { logger } = await import('@/lib/logger');

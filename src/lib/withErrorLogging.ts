@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
+import { logger, toErrorMessage } from "@/lib/logger";
 import { API_ERROR, LOG_EVENT } from "@/lib/constants";
 
 /**
@@ -17,7 +17,7 @@ export function withErrorLogging<Args extends unknown[]>(
     try {
       return await handler(...args);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
+      const message = toErrorMessage(e);
       logger.error(LOG_EVENT.SERVER_ERROR, { meta: { route: routeName, message } });
       return NextResponse.json({ error: API_ERROR.INTERNAL_ERROR }, { status: 500 });
     }

@@ -9,7 +9,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: async () => ({ auth: { getUser, exchangeCodeForSession } }),
 }));
 vi.mock('@/lib/prisma', () => ({ prisma: { player: { findUnique, create } } }));
-vi.mock('@/lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
+vi.mock('@/lib/logger');
 
 const { GET } = await import('./route');
 const { logger } = await import('@/lib/logger');

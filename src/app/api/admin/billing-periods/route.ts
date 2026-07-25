@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { formatPeriodRange } from "@/lib/period";
+import { getActivePeriod, formatPeriodRange } from "@/lib/period";
 import { withErrorLogging } from "@/lib/withErrorLogging";
 import { logger } from "@/lib/logger";
 import { API_ERROR, LOG_EVENT, PERIOD_STATUS } from "@/lib/constants";
@@ -33,12 +33,10 @@ async function postBillingPeriod(request: Request) {
   const { startDate, endDate, paymentInstructions } = await request.json();
   if (!startDate) return NextResponse.json({ error: API_ERROR.START_DATE_REQUIRED }, { status: 400 });
 
-  // findFirst (not updateMany) so we get the previous period's id back to log it.
-  // Only one period is ever active at a time (app invariant), so this closes
-  // the same row updateMany would have — no behavior change.
-  const previousActive = await prisma.billingPeriod.findFirst({
-    where: { status: PERIOD_STATUS.ACTIVE },
-  });
+  // getActivePeriod() (not updateMany) so we get the previous period's id
+  // back to log it. Only one period is ever active at a time (app invariant),
+  // so this closes the same row updateMany would have — no behavior change.
+  const previousActive = await getActivePeriod();
   if (previousActive) {
     await prisma.billingPeriod.update({
       where: { id: previousActive.id },
