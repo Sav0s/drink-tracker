@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPlayer } from "@/lib/auth";
+import { withErrorLogging } from "@/lib/withErrorLogging";
 import { API_ERROR } from "@/lib/constants";
 
 /**
  * DELETE ?drinkId=... → removes the current player's most recent booking
  * for the given drink (used for the "undo" toast on the home screen).
  */
-export async function DELETE(request: Request) {
+async function deleteLastBooking(request: Request) {
   const player = await getCurrentPlayer();
   if (!player) return NextResponse.json({ error: API_ERROR.UNAUTHORIZED }, { status: 401 });
 
@@ -25,3 +26,5 @@ export async function DELETE(request: Request) {
   await prisma.booking.delete({ where: { id: last.id } });
   return NextResponse.json({ ok: true });
 }
+
+export const DELETE = withErrorLogging("DELETE /api/bookings/last", deleteLastBooking);

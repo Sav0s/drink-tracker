@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { withErrorLogging } from "@/lib/withErrorLogging";
 import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
 
 /** PATCH { startDate?, endDate?, paymentInstructions? } → updates the active billing period. */
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function patchBillingPeriod(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await requireAdmin();
   if (error) return error;
 
@@ -38,3 +39,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   await prisma.billingPeriod.update({ where: { id }, data });
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withErrorLogging("PATCH /api/admin/billing-periods/[id]", patchBillingPeriod);

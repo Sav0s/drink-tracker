@@ -6,8 +6,10 @@ const update = vi.fn();
 
 vi.mock('@/lib/auth', () => ({ requireAdmin }));
 vi.mock('@/lib/prisma', () => ({ prisma: { billingPeriod: { findUnique, update } } }));
+vi.mock('@/lib/logger');
 
 const { POST } = await import('./route');
+const { logger } = await import('@/lib/logger');
 
 function closeRequest(body: unknown) {
   return new Request('http://localhost/api/admin/billing-periods/period-1/close', {
@@ -24,9 +26,10 @@ describe('POST /api/admin/billing-periods/[id]/close', () => {
     requireAdmin.mockReset();
     findUnique.mockReset();
     update.mockReset();
+    vi.mocked(logger.info).mockReset();
   });
 
-  it('closes an active period using the sent endDate', async () => {
+  it('closes an active period using the sent endDate, and logs billing_period_closed', async () => {
     requireAdmin.mockResolvedValue({ player: { id: 'admin-1', isAdmin: true } });
     findUnique.mockResolvedValue({ id: 'period-1', status: 'active', endDate: null });
     update.mockResolvedValue({});
@@ -37,6 +40,10 @@ describe('POST /api/admin/billing-periods/[id]/close', () => {
     expect(update).toHaveBeenCalledWith({
       where: { id: 'period-1' },
       data: { status: 'closed', endDate: new Date('2026-07-20') },
+    });
+    expect(logger.info).toHaveBeenCalledWith('billing_period_closed', {
+      userId: 'admin-1',
+      meta: { periodId: 'period-1' },
     });
   });
 
@@ -75,5 +82,6 @@ describe('POST /api/admin/billing-periods/[id]/close', () => {
 
     expect(res.status).toBe(400);
     expect(update).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalled();
   });
 });

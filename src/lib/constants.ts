@@ -36,6 +36,22 @@ export const API_ERROR = {
   PERIOD_NOT_ACTIVE: "Billing period is not active",
   END_DATE_BEFORE_START: "endDate must not be before startDate",
   ACTIVE_PERIOD_EXISTS: "An active billing period already exists",
+  INTERNAL_ERROR: "Internal server error",
+} as const;
+
+/** Event names for structured logging (src/lib/logger.ts). Kept as string literals so log lines stay stable if this file is refactored. */
+export const LOG_EVENT = {
+  AUTH_SUCCESS: "auth_success",
+  AUTH_FAILURE: "auth_failure",
+  DRINK_CREATED: "drink_created",
+  DRINK_UPDATED: "drink_updated",
+  BILLING_PERIOD_OPENED: "billing_period_opened",
+  BILLING_PERIOD_CLOSED: "billing_period_closed",
+  PAYMENT_MARKED: "payment_marked",
+  PAYMENT_RESET: "payment_reset",
+  PAYMENT_SELF_MARKED: "payment_self_marked",
+  PAYMENT_SELF_RESET: "payment_self_reset",
+  SERVER_ERROR: "server_error",
 } as const;
 
 /** App routes, used in router.push() calls and the proxy (route guards). */

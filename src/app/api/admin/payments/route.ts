@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { API_ERROR } from "@/lib/constants";
+import { withErrorLogging } from "@/lib/withErrorLogging";
+import { logger } from "@/lib/logger";
+import { API_ERROR, LOG_EVENT } from "@/lib/constants";
 
 /** PATCH { playerId, periodId, paid } → upserts a player's payment status for a period. */
-export async function PATCH(request: Request) {
-  const { error } = await requireAdmin();
+async function patchPayment(request: Request) {
+  const { player, error } = await requireAdmin();
   if (error) return error;
 
   const { playerId, periodId, paid } = await request.json();
@@ -19,5 +21,12 @@ export async function PATCH(request: Request) {
     create: { playerId, periodId, paid, paidAt: paid ? new Date() : null },
   });
 
+  logger.info(paid ? LOG_EVENT.PAYMENT_MARKED : LOG_EVENT.PAYMENT_RESET, {
+    userId: player.id,
+    meta: { playerId, periodId },
+  });
+
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withErrorLogging("PATCH /api/admin/payments", patchPayment);

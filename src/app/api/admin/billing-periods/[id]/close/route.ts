@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
+import { withErrorLogging } from "@/lib/withErrorLogging";
+import { logger } from "@/lib/logger";
+import { API_ERROR, LOG_EVENT, PERIOD_STATUS } from "@/lib/constants";
 
 /** POST { endDate? } → marks the active billing period done (closed). */
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { error } = await requireAdmin();
+async function closeBillingPeriod(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { player, error } = await requireAdmin();
   if (error) return error;
 
   const { id } = await params;
@@ -25,5 +27,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     },
   });
 
+  logger.info(LOG_EVENT.BILLING_PERIOD_CLOSED, {
+    userId: player.id,
+    meta: { periodId: id },
+  });
+
   return NextResponse.json({ ok: true });
 }
+
+export const POST = withErrorLogging("POST /api/admin/billing-periods/[id]/close", closeBillingPeriod);

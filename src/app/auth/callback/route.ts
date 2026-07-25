@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { ROUTES, DEFAULT_PLAYER_NAME } from "@/lib/constants";
+import { logger, toErrorMessage } from "@/lib/logger";
+import { ROUTES, DEFAULT_PLAYER_NAME, LOG_EVENT } from "@/lib/constants";
 
 /** Creates the player row, ensuring the @unique name doesn't collide with an existing one. */
 async function ensurePlayer(id: string, baseName: string) {
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? ROUTES.HOME;
+  const flow = code ? "code_exchange" : "otp";
 
   try {
     const supabase = await createClient();
@@ -35,7 +37,7 @@ export async function GET(request: Request) {
       // OAuth / magic link flow: exchange code for session
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
-        console.error("Auth callback – exchangeCodeForSession failed:", error.message);
+        logger.warn(LOG_EVENT.AUTH_FAILURE, { meta: { reason: "exchange_failed", message: error.message } });
         return NextResponse.redirect(`${origin}/login?error=auth`);
       }
     }
@@ -43,6 +45,7 @@ export async function GET(request: Request) {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      logger.warn(LOG_EVENT.AUTH_FAILURE, { meta: { reason: "no_user" } });
       return NextResponse.redirect(`${origin}/login?error=nouser`);
     }
 
@@ -54,6 +57,8 @@ export async function GET(request: Request) {
 
     const player = await ensurePlayer(user.id, displayName);
 
+    logger.info(LOG_EVENT.AUTH_SUCCESS, { userId: user.id, meta: { flow, isAdmin: player.isAdmin } });
+
     // Guard admin routes; route admins to their dashboard when they use the normal login.
     if (next.startsWith("/admin") && !player.isAdmin) {
       return NextResponse.redirect(`${origin}${ROUTES.HOME}`);
@@ -64,7 +69,8 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(`${origin}${next}`);
   } catch (e) {
-    console.error("Auth callback – unexpected error:", e);
+    const message = toErrorMessage(e);
+    logger.error(LOG_EVENT.SERVER_ERROR, { meta: { route: "GET /auth/callback", message } });
     return NextResponse.redirect(`${origin}/login?error=callback`);
   }
 }

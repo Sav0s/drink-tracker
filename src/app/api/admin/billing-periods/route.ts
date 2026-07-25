@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { formatPeriodRange, getActivePeriod } from "@/lib/period";
-import { API_ERROR, PERIOD_STATUS } from "@/lib/constants";
+import { getActivePeriod, formatPeriodRange } from "@/lib/period";
+import { withErrorLogging } from "@/lib/withErrorLogging";
+import { logger } from "@/lib/logger";
+import { API_ERROR, LOG_EVENT, PERIOD_STATUS } from "@/lib/constants";
 
 /** GET → all billing periods, newest first. */
-export async function GET() {
+async function getBillingPeriods() {
   const { error } = await requireAdmin();
   if (error) return error;
 
@@ -27,8 +29,8 @@ export async function GET() {
  * period. Fails with 409 if one is already active — the admin must mark
  * it done (POST .../[id]/close) first.
  */
-export async function POST(request: Request) {
-  const { error } = await requireAdmin();
+async function postBillingPeriod(request: Request) {
+  const { player, error } = await requireAdmin();
   if (error) return error;
 
   const { startDate, endDate, paymentInstructions } = await request.json();
@@ -48,5 +50,13 @@ export async function POST(request: Request) {
     },
   });
 
+  logger.info(LOG_EVENT.BILLING_PERIOD_OPENED, {
+    userId: player.id,
+    meta: { periodId: period.id, startDate, endDate: endDate ?? null },
+  });
+
   return NextResponse.json({ id: period.id });
 }
+
+export const GET = withErrorLogging("GET /api/admin/billing-periods", getBillingPeriods);
+export const POST = withErrorLogging("POST /api/admin/billing-periods", postBillingPeriod);
