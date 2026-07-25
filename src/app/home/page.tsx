@@ -79,8 +79,6 @@ export default function HauptseiteePage() {
   const [welcomeSaving, setWelcomeSaving] = useState(false);
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    setLoadError(null);
     fetch("/api/home")
       .then((r) => r.json())
       .then((data) => {
@@ -95,6 +93,12 @@ export default function HauptseiteePage() {
       .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
       .finally(() => setLoading(false));
   }, []);
+
+  function retryLoad() {
+    setLoading(true);
+    setLoadError(null);
+    loadData();
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -188,7 +192,7 @@ export default function HauptseiteePage() {
         <LoadingState minH="320px" />
       ) : loadError ? (
         <Box px={5} pt={8}>
-          <ErrorBanner message={loadError} onRetry={loadData} />
+          <ErrorBanner message={loadError} onRetry={retryLoad} />
         </Box>
       ) : (
         <>
