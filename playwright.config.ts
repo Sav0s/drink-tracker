@@ -23,6 +23,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/admin.json' },
       testMatch: /admin-.*\.spec\.ts/,
     },
+    {
+      name: 'unauthenticated',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /login-.*\.spec\.ts/,
+    },
   ],
   webServer: {
     command: 'npm run dev',

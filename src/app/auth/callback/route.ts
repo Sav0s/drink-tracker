@@ -28,18 +28,18 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? ROUTES.HOME;
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login`);
-  }
-
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) {
-      console.error("Auth callback – exchangeCodeForSession failed:", error.message);
-      return NextResponse.redirect(`${origin}/login?error=auth`);
+    if (code) {
+      // OAuth / magic link flow: exchange code for session
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        console.error("Auth callback – exchangeCodeForSession failed:", error.message);
+        return NextResponse.redirect(`${origin}/login?error=auth`);
+      }
     }
+    // No code → OTP flow: session already set by verifyOtp in the browser
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
