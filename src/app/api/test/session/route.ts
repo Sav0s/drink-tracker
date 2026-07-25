@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
+import { assertDisposableDatabase } from '@/lib/assertDisposableDatabase';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -15,6 +16,11 @@ export async function POST(request: Request) {
   if (process.env.PLAYWRIGHT_TEST !== 'true') {
     return new Response(null, { status: 404 });
   }
+
+  // Defense in depth: this route writes player rows via Prisma, so it must
+  // never run against a real database even if PLAYWRIGHT_TEST leaks into a
+  // real environment.
+  assertDisposableDatabase(process.env.DATABASE_URL!);
 
   const { userId, isAdmin } = await request.json();
   if (!userId || typeof userId !== 'string') {

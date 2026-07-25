@@ -1,14 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useState, useEffect } from 'react';
 import { render, screen, waitFor, fireEvent } from '@/test-utils';
 import userEvent from '@testing-library/user-event';
 
 const push = vi.fn();
 const getUser = vi.fn();
+
+// The page keeps its active tab in the URL query string (?tab=billing) via
+// useSearchParams()/router.replace() instead of local state. Mimic that here
+// with a module-level "current URL" so router.replace() actually changes
+// what useSearchParams() returns on the next render, same as real Next.js.
+let currentSearch = '';
+const searchListeners = new Set<() => void>();
+const replace = vi.fn((url: string) => {
+  const query = url.split('?')[1] ?? '';
+  currentSearch = query;
+  searchListeners.forEach((listener) => listener());
+});
 // Stable across renders — this page's data-fetch effect depends on [router].
-const router = { push };
+const router = { push, replace };
 
 vi.mock('next/navigation', () => ({
   useRouter: () => router,
+  useSearchParams: () => {
+    const [, rerender] = useState(0);
+    useEffect(() => {
+      const listener = () => rerender((n) => n + 1);
+      searchListeners.add(listener);
+      return () => { searchListeners.delete(listener); };
+    }, []);
+    return new URLSearchParams(currentSearch);
+  },
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -92,6 +114,8 @@ function mockFetch({ isAdmin = true } = {}) {
 describe('AdminDashboardPage', () => {
   beforeEach(() => {
     push.mockReset();
+    replace.mockClear();
+    currentSearch = '';
     getUser.mockResolvedValue({ data: { user: { email: 'fabi@example.com' } } });
   });
 

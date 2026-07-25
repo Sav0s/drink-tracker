@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { assertDisposableDatabase } from '@/lib/assertDisposableDatabase';
 
 export async function POST() {
   if (process.env.PLAYWRIGHT_TEST !== 'true') {
     return new Response(null, { status: 404 });
   }
+
+  // Defense in depth: PLAYWRIGHT_TEST=true alone isn't enough to trust this
+  // route with deleteMany() below — if that flag ever leaked into a real
+  // environment, this would still refuse to run against a non-disposable DB.
+  assertDisposableDatabase(process.env.DATABASE_URL!);
 
   // Find all E2E test player rows (name starts with "E2E"). Their UUIDs may
   // differ from our hardcoded PLAYER_ID/ADMIN_ID constants if Supabase already
@@ -15,11 +21,17 @@ export async function POST() {
   });
   const testPlayerIds = testPlayers.map(p => p.id);
 
-  // Order matters: dependent rows must be deleted before their parents.
-  // Payments and bookings from any player may reference billing periods, so
-  // wipe them all before deleting periods.
-  await prisma.payment.deleteMany({});
-  await prisma.booking.deleteMany({});
+  // Payments/bookings are scoped to the E2E test players so a run never
+  // touches another player's data. Billing periods have no such per-row
+  // marker (specs open/close whichever period is active), so this instead
+  // relies entirely on assertDisposableDatabase() above — this route only
+  // ever runs against a database where wiping every period is intentional.
+  if (testPlayerIds.length > 0) {
+    await Promise.all([
+      prisma.payment.deleteMany({ where: { playerId: { in: testPlayerIds } } }),
+      prisma.booking.deleteMany({ where: { playerId: { in: testPlayerIds } } }),
+    ]);
+  }
   await prisma.billingPeriod.deleteMany({});
   if (testPlayerIds.length > 0) {
     await prisma.player.deleteMany({ where: { id: { in: testPlayerIds } } });
