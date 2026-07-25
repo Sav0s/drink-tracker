@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:test": "dotenv -e .env.test -- next dev",
+    "dev:prod": "dotenv -e .env.production.local -- next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "dotenv -e .env.test -- vitest run --config vitest.integration.config.ts",
     "db:migrate:test": "dotenv -e .env.test -- prisma migrate deploy",
+    "db:migrate:prod": "dotenv -e .env.production.local -- prisma migrate deploy",
     "test:e2e": "playwright test",
     "postinstall": "prisma generate"
   },
