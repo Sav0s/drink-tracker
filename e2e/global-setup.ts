@@ -125,6 +125,12 @@ async function seedDrink(): Promise<void> {
 export default async function globalSetup() {
   fs.mkdirSync(path.resolve(__dirname, '.auth'), { recursive: true });
   await cleanup();
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('[global-setup] SUPABASE_SERVICE_ROLE_KEY not set — skipping session setup (unauthenticated tests only)');
+    return;
+  }
+
   await setupSession(PLAYER_ID, false);
   await setupSession(ADMIN_ID,  true);
   await seedDrink();

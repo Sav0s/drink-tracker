@@ -1,51 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Box, Flex, Text, Input, Image } from "@chakra-ui/react";
-import { Mail, CheckCircle2 } from "lucide-react";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CLUB_NAME } from "@/lib/constants";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
+  const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null));
 
-  async function handleGoogleLogin() {
+  useEffect(() => {
+    if (step === "otp") {
+      const t = setTimeout(() => inputRefs.current[0]?.focus(), 80);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  async function sendOtp(emailAddress: string) {
+    setLoading(true);
+    setError("");
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+    const { error: e } = await supabase.auth.signInWithOtp({
+      email: emailAddress,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
+    setLoading(false);
+    if (e) {
+      setError("Senden fehlgeschlagen. Bitte versuche es erneut.");
+      return false;
+    }
+    return true;
   }
 
-  async function handleMagicLink(e: React.FormEvent) {
+  async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = email.trim();
     if (!EMAIL_RE.test(trimmed)) {
-      setStatus("error");
       setError("Bitte gib eine gültige E-Mail-Adresse ein.");
       return;
     }
-    setStatus("sending");
-    setError("");
-
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-
-    if (otpError) {
-      setStatus("error");
-      setError("Senden fehlgeschlagen. Bitte versuche es erneut.");
-    } else {
-      setStatus("sent");
+    const ok = await sendOtp(trimmed);
+    if (ok) {
+      setDigits(["", "", "", "", "", ""]);
+      setStep("otp");
     }
+  }
+
+  async function resendCode() {
+    setDigits(["", "", "", "", "", ""]);
+    await sendOtp(email.trim());
+  }
+
+  async function verifyCode(token: string) {
+    if (token.length < 6 || loading) return;
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error: e } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token,
+      type: "email",
+    });
+    if (e) {
+      setLoading(false);
+      setError("Ungültiger oder abgelaufener Code. Bitte versuche es erneut.");
+      setDigits(["", "", "", "", "", ""]);
+      setTimeout(() => inputRefs.current[0]?.focus(), 50);
+    } else {
+      // Session is set — hand off to auth callback for player upsert + redirect
+      window.location.assign("/auth/callback");
+    }
+  }
+
+  function handleDigitChange(index: number, value: string) {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const next = [...digits];
+    next[index] = digit;
+    setDigits(next);
+    if (error) setError("");
+    if (digit && index < 5) inputRefs.current[index + 1]?.focus();
+    if (digit && next.every((d) => d)) verifyCode(next.join(""));
+  }
+
+  function handleDigitKeyDown(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      const next = [...digits];
+      next[index - 1] = "";
+      setDigits(next);
+      inputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  function handleDigitPaste(e: React.ClipboardEvent) {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!text) return;
+    const next = Array(6).fill("");
+    text.split("").forEach((c, i) => { next[i] = c; });
+    setDigits(next);
+    inputRefs.current[Math.min(text.length, 5)]?.focus();
+    if (text.length === 6) verifyCode(text);
+  }
+
+  function handleGoogleLogin() {
+    const supabase = createClient();
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   }
 
   return (
@@ -59,7 +128,6 @@ export default function LoginPage() {
           objectFit="contain"
           mb={5}
         />
-
         <Text fontSize="27px" fontWeight="800" letterSpacing="-0.5px" color="#eaedf2" mb={1.5}>
           Kabinen-Bar
         </Text>
@@ -67,39 +135,101 @@ export default function LoginPage() {
           Getränke-Tracker{CLUB_NAME ? ` · ${CLUB_NAME}` : ""}
         </Text>
 
-        {status === "sent" ? (
-          /* Magic-link confirmation */
-          <Flex
-            flexDir="column"
-            alignItems="center"
-            textAlign="center"
-            w="full"
-            bg="#151a21"
-            border="1px solid rgba(255,255,255,0.07)"
-            borderRadius="16px"
-            px={5}
-            py={7}
-          >
-            <CheckCircle2 size={40} color="#2fa968" />
-            <Text fontSize="17px" fontWeight="700" color="#eaedf2" mt={3} mb={1}>
-              Login-Link gesendet
-            </Text>
-            <Text fontSize="14px" color="#939dab" mb={5}>
-              Wir haben dir einen Link an <Text as="span" color="#eaedf2">{email.trim()}</Text> geschickt.
-              Öffne ihn auf diesem Gerät, um dich anzumelden.
-            </Text>
+        {step === "otp" ? (
+          <Flex flexDir="column" w="full" gap={5}>
+            <Box>
+              <Text fontSize="17px" fontWeight="700" color="#eaedf2" mb="6px">
+                Code eingeben
+              </Text>
+              <Text fontSize="14px" color="#939dab">
+                Wir haben einen 6-stelligen Code an{" "}
+                <Text as="span" color="#eaedf2">{email.trim()}</Text> gesendet.
+              </Text>
+            </Box>
+
+            {/* 6-digit OTP input */}
+            <Flex gap={2}>
+              {digits.map((d, i) => (
+                <Input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
+                  data-testid={`otp-digit-${i}`}
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete={i === 0 ? "one-time-code" : "off"}
+                  maxLength={1}
+                  value={d}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDigitChange(i, e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => handleDigitKeyDown(i, e)}
+                  onPaste={i === 0 ? handleDigitPaste : undefined}
+                  disabled={loading}
+                  flex={1}
+                  h="60px"
+                  textAlign="center"
+                  fontSize="24px"
+                  fontWeight="700"
+                  bg="#1b212b"
+                  border="1px solid"
+                  borderColor={error ? "rgba(224,83,95,0.5)" : "rgba(255,255,255,0.12)"}
+                  borderRadius="10px"
+                  px={0}
+                  color="#eaedf2"
+                  _focus={{ borderColor: error ? "#e0535f" : "#0468b3", outline: "none" }}
+                  _disabled={{ opacity: 0.5 }}
+                />
+              ))}
+            </Flex>
+
+            {error && (
+              <Text fontSize="13px" color="#e0535f">{error}</Text>
+            )}
+
             <Box
               as="button"
-              bg="none"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              h="52px"
+              borderRadius="12px"
+              bg={digits.every((d) => d) ? "#0468b3" : "#1b212b"}
+              color={digits.every((d) => d) ? "white" : "#5c6675"}
               border="none"
-              cursor="pointer"
-              color="#0468b3"
-              fontSize="14px"
-              fontWeight="600"
-              onClick={() => { setStatus("idle"); setError(""); }}
+              fontSize="15px"
+              fontWeight="700"
+              opacity={loading ? 0.7 : 1}
+              cursor={loading || !digits.every((d) => d) ? "default" : "pointer"}
+              onClick={() => verifyCode(digits.join(""))}
             >
-              Andere E-Mail verwenden
+              {loading ? "Wird überprüft…" : "Bestätigen"}
             </Box>
+
+            <Flex justifyContent="center" alignItems="center" gap={3}>
+              <Box
+                as="button"
+                bg="none"
+                border="none"
+                cursor="pointer"
+                color="#5c6675"
+                fontSize="13px"
+                onClick={() => { setStep("email"); setDigits(Array(6).fill("")); setError(""); }}
+              >
+                Andere E-Mail
+              </Box>
+              <Text fontSize="13px" color="#5c6675">·</Text>
+              <Box
+                as="button"
+                bg="none"
+                border="none"
+                cursor={loading ? "default" : "pointer"}
+                color="#0468b3"
+                fontSize="13px"
+                fontWeight="600"
+                opacity={loading ? 0.5 : 1}
+                onClick={resendCode}
+              >
+                Code erneut senden
+              </Box>
+            </Flex>
           </Flex>
         ) : (
           <>
@@ -124,21 +254,19 @@ export default function LoginPage() {
               Mit Google anmelden
             </Box>
 
-            {/* Divider */}
             <Flex alignItems="center" w="full" gap={3} my={5}>
               <Box flex={1} h="1px" bg="rgba(255,255,255,0.1)" />
               <Text fontSize="12px" color="#5c6675">oder</Text>
               <Box flex={1} h="1px" bg="rgba(255,255,255,0.1)" />
             </Flex>
 
-            {/* Magic-link form */}
-            <Flex as="form" flexDir="column" w="full" gap={3} onSubmit={handleMagicLink}>
+            <Flex as="form" flexDir="column" w="full" gap={3} onSubmit={handleSendCode}>
               <Input
                 type="email"
                 value={email}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setEmail(e.target.value);
-                  if (status === "error") { setStatus("idle"); setError(""); }
+                  if (error) setError("");
                 }}
                 placeholder="deine@email.de"
                 h="52px"
@@ -154,7 +282,7 @@ export default function LoginPage() {
                 _placeholder={{ color: "#5c6675" }}
               />
 
-              {status === "error" && (
+              {error && (
                 <Text fontSize="13px" color="#e0535f">{error}</Text>
               )}
 
@@ -171,13 +299,13 @@ export default function LoginPage() {
                 h="52px"
                 fontSize="15px"
                 fontWeight="700"
-                cursor={status === "sending" ? "default" : "pointer"}
+                cursor={loading ? "default" : "pointer"}
                 w="full"
-                opacity={status === "sending" ? 0.7 : 1}
-                _hover={status === "sending" ? undefined : { bg: "#0576cc" }}
+                opacity={loading ? 0.7 : 1}
+                _hover={loading ? undefined : { bg: "#0576cc" }}
               >
                 <Mail size={18} />
-                {status === "sending" ? "Wird gesendet…" : "Login-Link senden"}
+                {loading ? "Wird gesendet…" : "Code senden"}
               </Box>
             </Flex>
 

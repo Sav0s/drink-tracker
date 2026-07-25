@@ -16,10 +16,10 @@ export async function POST() {
   const testPlayerIds = testPlayers.map(p => p.id);
 
   // Order matters: dependent rows must be deleted before their parents.
-  if (testPlayerIds.length > 0) {
-    await prisma.payment.deleteMany({ where: { playerId: { in: testPlayerIds } } });
-    await prisma.booking.deleteMany({ where: { playerId: { in: testPlayerIds } } });
-  }
+  // Payments and bookings from any player may reference billing periods, so
+  // wipe them all before deleting periods.
+  await prisma.payment.deleteMany({});
+  await prisma.booking.deleteMany({});
   await prisma.billingPeriod.deleteMany({});
   if (testPlayerIds.length > 0) {
     await prisma.player.deleteMany({ where: { id: { in: testPlayerIds } } });
