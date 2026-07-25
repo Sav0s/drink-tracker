@@ -2,19 +2,14 @@ import { chromium, type BrowserContext } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { assertDisposableDatabase } from '../src/lib/assertDisposableDatabase';
+import { prisma } from '../src/lib/prisma';
 
 // Load .env.local for local development (Supabase Auth creds — there's only
-// one Auth project); in CI these are already in env.
+// one Auth project); in CI these are already in env. DATABASE_URL/DIRECT_URL
+// are NOT loaded here — playwright.config.ts already overrode them from
+// .env.test and asserted they're disposable, and that runs first in the same
+// process, so dotenv (default override:false) leaves those two alone below.
 dotenv.config({ path: '.env.local' });
-// Then override DATABASE_URL/DIRECT_URL with the disposable test DB from
-// .env.test — this file's seedDrink() below writes directly via Prisma, and
-// must never do that against production. No-ops safely if .env.test doesn't
-// exist (CI already sets a safe localhost DATABASE_URL via job-level env).
-dotenv.config({ path: '.env.test', override: true });
-assertDisposableDatabase(process.env.DATABASE_URL!);
 
 const BASE = 'http://localhost:3000';
 const PLAYER_ID = 'e2e-player-001';
@@ -118,16 +113,9 @@ async function cleanup(): Promise<void> {
 }
 
 async function seedDrink(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  await prisma.drink.create({
+    data: { name: 'E2E Bier', priceCents: 150, active: true },
   });
-  try {
-    await prisma.drink.create({
-      data: { name: 'E2E Bier', priceCents: 150, active: true },
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
 }
 
 export default async function globalSetup() {

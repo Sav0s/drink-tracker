@@ -27,8 +27,10 @@ export async function POST() {
   // relies entirely on assertDisposableDatabase() above — this route only
   // ever runs against a database where wiping every period is intentional.
   if (testPlayerIds.length > 0) {
-    await prisma.payment.deleteMany({ where: { playerId: { in: testPlayerIds } } });
-    await prisma.booking.deleteMany({ where: { playerId: { in: testPlayerIds } } });
+    await Promise.all([
+      prisma.payment.deleteMany({ where: { playerId: { in: testPlayerIds } } }),
+      prisma.booking.deleteMany({ where: { playerId: { in: testPlayerIds } } }),
+    ]);
   }
   await prisma.billingPeriod.deleteMany({});
   if (testPlayerIds.length > 0) {
