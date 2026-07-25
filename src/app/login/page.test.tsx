@@ -146,6 +146,26 @@ describe('LoginPage', () => {
     expect(screen.getByPlaceholderText('deine@email.de')).toBeInTheDocument();
   });
 
+  it('auto-fills all digits when iOS AutoFill inserts the full code into the first field', async () => {
+    signInWithOtp.mockResolvedValue({ error: null });
+    verifyOtp.mockResolvedValue({ error: null });
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByPlaceholderText('deine@email.de'), 'fabi@example.com');
+    await user.click(screen.getByText('Code senden'));
+    await waitFor(() => expect(screen.getAllByTestId(/otp-digit-/)).toHaveLength(6));
+
+    // Simulate iOS AutoFill: the full 6-digit code lands in the first input via a change event
+    await user.type(screen.getByTestId('otp-digit-0'), '123456');
+
+    await waitFor(() =>
+      expect(verifyOtp).toHaveBeenCalledWith(
+        expect.objectContaining({ token: '123456', type: 'email' })
+      )
+    );
+  });
+
   it('resends the code when "Code erneut senden" is clicked', async () => {
     signInWithOtp.mockResolvedValue({ error: null });
     const user = userEvent.setup();

@@ -80,7 +80,17 @@ export default function LoginPage() {
   }
 
   function handleDigitChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const cleaned = value.replace(/\D/g, "");
+    // iOS AutoFill inserts the full 6-digit code into a single field via a change event
+    if (cleaned.length === 6) {
+      const next = cleaned.split("");
+      setDigits(next);
+      if (error) setError("");
+      inputRefs.current[5]?.focus();
+      verifyCode(cleaned);
+      return;
+    }
+    const digit = cleaned.slice(-1);
     const next = [...digits];
     next[index] = digit;
     setDigits(next);
