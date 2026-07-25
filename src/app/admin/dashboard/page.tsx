@@ -106,7 +106,7 @@ function AdminDashboardContent() {
   // to "Getränke verwalten".
   const tab: "drinks" | "billing" = searchParams.get("tab") === "billing" ? "billing" : "drinks";
   function setTab(next: "drinks" | "billing") {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams);
     if (next === "drinks") params.delete("tab");
     else params.set("tab", next);
     const query = params.toString();
