@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Box, Flex, Text, Input, Textarea } from "@chakra-ui/react";
 import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { formatCents } from "@/types";
@@ -91,8 +91,27 @@ function FieldInput({
 
 /* ─── Dashboard ─── */
 export default function AdminDashboardPage() {
+  return (
+    <Suspense fallback={<LoadingState color="#6478a0" />}>
+      <AdminDashboardContent />
+    </Suspense>
+  );
+}
+
+function AdminDashboardContent() {
   const router = useRouter();
-  const [tab,        setTab]        = useState<"drinks" | "billing">("drinks");
+  const searchParams = useSearchParams();
+  // Tab lives in the URL (?tab=billing) instead of local state, so a reload
+  // or shared link lands back on the same tab instead of always resetting
+  // to "Getränke verwalten".
+  const tab: "drinks" | "billing" = searchParams.get("tab") === "billing" ? "billing" : "drinks";
+  function setTab(next: "drinks" | "billing") {
+    const params = new URLSearchParams(searchParams);
+    if (next === "drinks") params.delete("tab");
+    else params.set("tab", next);
+    const query = params.toString();
+    router.replace(query ? `${ROUTES.ADMIN_DASHBOARD}?${query}` : ROUTES.ADMIN_DASHBOARD, { scroll: false });
+  }
   const [drinks,     setDrinks]     = useState<DrinkRow[]>([]);
   const [newName,    setNewName]    = useState("");
   const [newPrice,   setNewPrice]   = useState("");
