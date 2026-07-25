@@ -4,9 +4,17 @@ import fs from 'fs';
 import * as dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { assertDisposableDatabase } from '../src/lib/assertDisposableDatabase';
 
-// Load .env.local for local development; in CI DATABASE_URL is already in env
+// Load .env.local for local development (Supabase Auth creds — there's only
+// one Auth project); in CI these are already in env.
 dotenv.config({ path: '.env.local' });
+// Then override DATABASE_URL/DIRECT_URL with the disposable test DB from
+// .env.test — this file's seedDrink() below writes directly via Prisma, and
+// must never do that against production. No-ops safely if .env.test doesn't
+// exist (CI already sets a safe localhost DATABASE_URL via job-level env).
+dotenv.config({ path: '.env.test', override: true });
+assertDisposableDatabase(process.env.DATABASE_URL!);
 
 const BASE = 'http://localhost:3000';
 const PLAYER_ID = 'e2e-player-001';
