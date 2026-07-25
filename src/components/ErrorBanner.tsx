@@ -4,10 +4,10 @@ import { Box, Flex, Text } from "@chakra-ui/react";
 
 interface Props {
   message: string;
-  onRetry?: () => void;
+  action?: { label: string; onClick: () => void };
 }
 
-export function ErrorBanner({ message, onRetry }: Props) {
+export function ErrorBanner({ message, action }: Props) {
   return (
     <Flex
       bg="rgba(224,83,95,0.10)"
@@ -19,7 +19,7 @@ export function ErrorBanner({ message, onRetry }: Props) {
       role="alert"
     >
       <Text flex={1} fontSize="14px" color="#e0535f">{message}</Text>
-      {onRetry && (
+      {action && (
         <Box
           as="button"
           bg="none"
@@ -29,9 +29,9 @@ export function ErrorBanner({ message, onRetry }: Props) {
           fontWeight="600"
           cursor="pointer"
           flexShrink={0}
-          onClick={onRetry}
+          onClick={action.onClick}
         >
-          Neu laden
+          {action.label}
         </Box>
       )}
     </Flex>

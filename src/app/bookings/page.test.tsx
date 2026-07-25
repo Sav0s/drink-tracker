@@ -51,13 +51,13 @@ function mockFetch() {
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
       if (url === '/api/me') {
-        return Promise.resolve({ json: () => Promise.resolve({ name: 'Fabi', isAdmin: false }) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Fabi', isAdmin: false }) });
       }
       if (url === '/api/bookings') {
-        return Promise.resolve({ json: () => Promise.resolve({ periods }) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ periods }) });
       }
       if (url === '/api/payments' && init?.method === 'POST') {
-        return Promise.resolve({ json: () => Promise.resolve({}) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       }
       return Promise.reject(new Error(`Unhandled fetch: ${url}`));
     })
@@ -137,11 +137,11 @@ describe('BookingsPage', () => {
     );
   });
 
-  it('shows an error banner when /api/bookings fails', async () => {
+  it('shows an error banner with Neu-laden action when /api/bookings fails with a network error', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve({ name: 'Fabi' }) });
+        if (url === '/api/me') return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Fabi' }) });
         if (url === '/api/bookings') return Promise.reject(new Error('network error'));
         return Promise.reject(new Error(`Unhandled: ${url}`));
       })
@@ -150,6 +150,24 @@ describe('BookingsPage', () => {
     render(<BookingsPage />);
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+    expect(screen.getByText(/Keine Verbindung/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neu laden' })).toBeInTheDocument();
+  });
+
+  it('shows an error banner with Einloggen action when /api/bookings returns 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === '/api/me') return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Fabi' }) });
+        if (url === '/api/bookings') return Promise.resolve({ ok: false, status: 401 });
+        return Promise.reject(new Error(`Unhandled: ${url}`));
+      })
+    );
+
+    render(<BookingsPage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Sitzung abgelaufen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einloggen' })).toBeInTheDocument();
   });
 });

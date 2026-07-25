@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text } from "@chakra-ui/react";
 import { ChevronRight, Check, RotateCcw } from "lucide-react";
@@ -8,6 +8,7 @@ import { ErrorBanner } from "@/components/ErrorBanner";
 import { formatCents } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES, PROFILE_STATUS, DEFAULT_PLAYER_NAME, type ProfileStatus } from "@/lib/constants";
+import { apiFetch, ApiFetchError, API_ACTION, type ApiAction } from "@/lib/apiFetch";
 import { LoadingState } from "@/components/LoadingState";
 import { AppBar } from "@/components/AppBar";
 
@@ -38,7 +39,23 @@ export default function ProfilePage() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ message: string; action: ApiAction } | null>(null);
+
+  const loadPeriods = useCallback(() => {
+    apiFetch("/api/bookings")
+      .then((data) => setPeriods(data.periods ?? []))
+      .catch((err: unknown) => {
+        const e = err instanceof ApiFetchError ? err : new ApiFetchError("Laden fehlgeschlagen.");
+        setLoadError({ message: e.message, action: e.action });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  function retryPeriods() {
+    setLoading(true);
+    setLoadError(null);
+    loadPeriods();
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,26 +63,20 @@ export default function ProfilePage() {
       if (!user) router.push(ROUTES.LOGIN);
     });
 
-    fetch("/api/me")
-      .then((r) => r.json())
+    apiFetch("/api/me")
       .then((me) => setPlayer(me?.name || DEFAULT_PLAYER_NAME))
       .catch(() => {});
 
-    fetch("/api/bookings")
-      .then((r) => r.json())
-      .then((data) => setPeriods(data.periods ?? []))
-      .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
-      .finally(() => setLoading(false));
-  }, [router]);
+    loadPeriods();
+  }, [router, loadPeriods]);
 
   async function setPaid(periodId: string, paid: boolean) {
-    await fetch("/api/payments", {
+    await apiFetch("/api/payments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ periodId, paid }),
     }).catch(() => {});
-    fetch("/api/bookings")
-      .then((r) => r.json())
+    apiFetch("/api/bookings")
       .then((data) => setPeriods(data.periods ?? []))
       .catch(() => {});
   }
@@ -102,7 +113,14 @@ export default function ProfilePage() {
         {loading ? (
           <LoadingState minH="280px" />
         ) : loadError ? (
-          <ErrorBanner message={loadError} onRetry={() => window.location.reload()} />
+          <ErrorBanner
+            message={loadError.message}
+            action={
+              loadError.action === API_ACTION.LOGIN
+                ? { label: "Einloggen", onClick: () => router.push(ROUTES.LOGIN) }
+                : { label: "Neu laden", onClick: retryPeriods }
+            }
+          />
         ) : (
           <>
         {/* Balance card */}

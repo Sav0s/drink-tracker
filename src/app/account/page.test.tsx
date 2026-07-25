@@ -25,7 +25,7 @@ function mockFetch(name = 'Fabi') {
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
       if (url === '/api/me' && (!init || init.method === undefined)) {
-        return Promise.resolve({ json: () => Promise.resolve({ name, isAdmin: false }) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ name, isAdmin: false }) });
       }
       if (url === '/api/me' && init?.method === 'PATCH') {
         const body = JSON.parse(init.body as string);
@@ -119,7 +119,7 @@ describe('AccountPage', () => {
     expect(push).toHaveBeenCalledWith('/home');
   });
 
-  it('shows an error banner when /api/me fails to load', async () => {
+  it('shows an error banner with Neu-laden action when /api/me fails to load', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init?: RequestInit) => {
@@ -131,7 +131,24 @@ describe('AccountPage', () => {
     render(<AccountPage />);
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+    expect(screen.getByText(/Keine Verbindung/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neu laden' })).toBeInTheDocument();
+  });
+
+  it('shows an error banner with Einloggen action when /api/me returns 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        if (url === '/api/me' && !init?.method) return Promise.resolve({ ok: false, status: 401 });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      })
+    );
+
+    render(<AccountPage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Sitzung abgelaufen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einloggen' })).toBeInTheDocument();
   });
 
   it('shows a save error when PATCH /api/me fails', async () => {
@@ -139,10 +156,10 @@ describe('AccountPage', () => {
       'fetch',
       vi.fn((url: string, init?: RequestInit) => {
         if (url === '/api/me' && !init?.method) {
-          return Promise.resolve({ json: () => Promise.resolve({ name: 'Fabi', isAdmin: false }) });
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Fabi', isAdmin: false }) });
         }
         if (url === '/api/me' && init?.method === 'PATCH') {
-          return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: 'Internal server error' }) });
+          return Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({ error: 'Internal server error' }) });
         }
         return Promise.reject(new Error(`Unhandled: ${url}`));
       })

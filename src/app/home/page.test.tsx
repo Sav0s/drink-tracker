@@ -40,16 +40,16 @@ function mockFetch() {
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
       if (url === '/api/home') {
-        return Promise.resolve({ json: () => Promise.resolve(homeResponse) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(homeResponse) });
       }
       if (url === '/api/me') {
-        return Promise.resolve({ json: () => Promise.resolve(meResponse) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(meResponse) });
       }
       if (url === '/api/bookings') {
-        return Promise.resolve({ json: () => Promise.resolve({ id: 'booking-1' }) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'booking-1' }) });
       }
       if (typeof url === 'string' && url.startsWith('/api/bookings/last')) {
-        return Promise.resolve({ json: () => Promise.resolve({}) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       }
       return Promise.reject(new Error(`Unhandled fetch: ${url} ${init?.method ?? 'GET'}`));
     })
@@ -114,13 +114,14 @@ describe('HomePage', () => {
       vi.fn((url: string) => {
         if (url === '/api/home') {
           return Promise.resolve({
+            ok: true,
             json: () => Promise.resolve({ ...homeResponse, firstVisit: true, playerName: '' }),
           });
         }
         if (url === '/api/me') {
-          return Promise.resolve({ json: () => Promise.resolve(meResponse) });
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(meResponse) });
         }
-        return Promise.resolve({ json: () => Promise.resolve({}) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       })
     );
 
@@ -129,31 +130,48 @@ describe('HomePage', () => {
     expect(await screen.findByText('Willkommen in der Kabinen-Bar')).toBeInTheDocument();
   });
 
-  it('shows an error banner when /api/home fails', async () => {
+  it('shows an error banner with Neu-laden action when /api/home fails with a network error', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
         if (url === '/api/home') return Promise.reject(new Error('network error'));
-        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve(meResponse) });
-        return Promise.resolve({ json: () => Promise.resolve({}) });
+        if (url === '/api/me') return Promise.resolve({ ok: true, json: () => Promise.resolve(meResponse) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       })
     );
 
     render(<HomePage />);
 
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.getByText(/Laden fehlgeschlagen/)).toBeInTheDocument();
+    expect(screen.getByText(/Keine Verbindung/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Neu laden' })).toBeInTheDocument();
+  });
+
+  it('shows an error banner with Einloggen action when /api/home returns 401', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === '/api/home') return Promise.resolve({ ok: false, status: 401 });
+        if (url === '/api/me') return Promise.resolve({ ok: true, json: () => Promise.resolve(meResponse) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+      })
+    );
+
+    render(<HomePage />);
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Sitzung abgelaufen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einloggen' })).toBeInTheDocument();
   });
 
   it('reverts optimistic booking update and shows error toast when booking fails', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init?: RequestInit) => {
-        if (url === '/api/home') return Promise.resolve({ json: () => Promise.resolve(homeResponse) });
-        if (url === '/api/me') return Promise.resolve({ json: () => Promise.resolve(meResponse) });
+        if (url === '/api/home') return Promise.resolve({ ok: true, json: () => Promise.resolve(homeResponse) });
+        if (url === '/api/me') return Promise.resolve({ ok: true, json: () => Promise.resolve(meResponse) });
         if (url === '/api/bookings' && init?.method === 'POST') return Promise.reject(new Error('server error'));
-        return Promise.resolve({ json: () => Promise.resolve({}) });
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
       })
     );
 

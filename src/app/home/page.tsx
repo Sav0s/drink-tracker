@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, Pencil, Check, AlertCircle } from "lucide-react";
 import { formatCents } from "@/types";
 import { ROUTES, NO_PAYMENT_INSTRUCTIONS_FALLBACK } from "@/lib/constants";
+import { apiFetch, ApiFetchError, API_ACTION, type ApiAction } from "@/lib/apiFetch";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { AppBar } from "@/components/AppBar";
@@ -72,15 +73,14 @@ export default function HauptseiteePage() {
   const [closedPeriodNotice, setClosedPeriodNotice] = useState<ClosedPeriod | null>(null);
   const [periodStart, setPeriodStart] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ message: string; action: ApiAction } | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const [welcomeSaving, setWelcomeSaving] = useState(false);
 
   const loadData = useCallback(() => {
-    fetch("/api/home")
-      .then((r) => r.json())
+    apiFetch("/api/home")
       .then((data) => {
         setDrinks(data.drinks ?? []);
         setClosedPeriodNotice(data.closedPeriod ?? null);
@@ -90,7 +90,10 @@ export default function HauptseiteePage() {
           setWelcomeOpen(true);
         }
       })
-      .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
+      .catch((err: unknown) => {
+        const e = err instanceof ApiFetchError ? err : new ApiFetchError("Laden fehlgeschlagen.");
+        setLoadError({ message: e.message, action: e.action });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -143,17 +146,20 @@ export default function HauptseiteePage() {
       setDrinks((prev) =>
         prev.map((d) => (d.id === drink.id ? { ...d, count: d.count + 1 } : d))
       );
-      fetch("/api/bookings", {
+      apiFetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ drinkId: drink.id }),
-      }).catch(() => {
-        // Revert optimistic update and show error
+      }).catch((err: unknown) => {
         setDrinks((prev) =>
           prev.map((d) => (d.id === drink.id ? { ...d, count: Math.max(0, d.count - 1) } : d))
         );
         setToast(null);
-        setBookingError("Buchung fehlgeschlagen. Bitte erneut versuchen.");
+        const msg =
+          err instanceof ApiFetchError && err.status === 401
+            ? "Sitzung abgelaufen. Bitte neu einloggen."
+            : "Buchung fehlgeschlagen. Bitte erneut versuchen.";
+        setBookingError(msg);
       });
       if (toastTimer) clearTimeout(toastTimer);
       setToast({ drink });
@@ -192,7 +198,14 @@ export default function HauptseiteePage() {
         <LoadingState minH="320px" />
       ) : loadError ? (
         <Box px={5} pt={8}>
-          <ErrorBanner message={loadError} onRetry={retryLoad} />
+          <ErrorBanner
+            message={loadError.message}
+            action={
+              loadError.action === API_ACTION.LOGIN
+                ? { label: "Einloggen", onClick: () => router.push(ROUTES.LOGIN) }
+                : { label: "Neu laden", onClick: retryLoad }
+            }
+          />
         </Box>
       ) : (
         <>

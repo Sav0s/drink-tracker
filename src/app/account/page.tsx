@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Flex, Text, Input } from "@chakra-ui/react";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/lib/constants";
+import { apiFetch, ApiFetchError, API_ACTION, type ApiAction } from "@/lib/apiFetch";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { AppBar } from "@/components/AppBar";
@@ -15,27 +16,38 @@ export default function AccountPage() {
   const [originalName, setOriginalName] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ message: string; action: ApiAction } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showLeave, setShowLeave] = useState(false);
+
+  const loadAccount = useCallback(() => {
+    apiFetch("/api/me")
+      .then((me) => {
+        const n = me?.name ?? "";
+        setOriginalName(n);
+        setName(n);
+      })
+      .catch((err: unknown) => {
+        const e = err instanceof ApiFetchError ? err : new ApiFetchError("Laden fehlgeschlagen.");
+        setLoadError({ message: e.message, action: e.action });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  function retryAccount() {
+    setLoading(true);
+    setLoadError(null);
+    loadAccount();
+  }
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.push(ROUTES.LOGIN);
     });
-
-    fetch("/api/me")
-      .then((r) => r.json())
-      .then((me) => {
-        const n = me?.name ?? "";
-        setOriginalName(n);
-        setName(n);
-      })
-      .catch(() => setLoadError("Laden fehlgeschlagen. Bitte Seite neu laden."))
-      .finally(() => setLoading(false));
-  }, [router]);
+    loadAccount();
+  }, [router, loadAccount]);
 
   const trimmed = name.trim();
   const dirty = name !== originalName;
@@ -54,20 +66,19 @@ export default function AccountPage() {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch("/api/me", {
+      const me = await apiFetch("/api/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed }),
       });
-      if (res.ok) {
-        const me = await res.json();
-        setOriginalName(me.name);
-        setName(me.name);
-      } else {
-        setSaveError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
-      }
-    } catch {
-      setSaveError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+      setOriginalName(me.name);
+      setName(me.name);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof ApiFetchError && err.status === 401
+          ? "Sitzung abgelaufen. Bitte neu einloggen."
+          : "Speichern fehlgeschlagen. Bitte erneut versuchen.";
+      setSaveError(msg);
     } finally {
       setSaving(false);
     }
@@ -82,7 +93,14 @@ export default function AccountPage() {
           {loading ? (
             <LoadingState minH="320px" />
           ) : loadError ? (
-            <ErrorBanner message={loadError} onRetry={() => window.location.reload()} />
+            <ErrorBanner
+              message={loadError.message}
+              action={
+                loadError.action === API_ACTION.LOGIN
+                  ? { label: "Einloggen", onClick: () => router.push(ROUTES.LOGIN) }
+                  : { label: "Neu laden", onClick: retryAccount }
+              }
+            />
           ) : (
             <>
               {/* Profile head */}
