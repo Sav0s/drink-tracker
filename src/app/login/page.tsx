@@ -23,6 +23,7 @@ export default function LoginPage() {
     }
   }, [step]);
 
+
   async function sendOtp(emailAddress: string) {
     setLoading(true);
     setError("");
@@ -81,7 +82,7 @@ export default function LoginPage() {
 
   function handleDigitChange(index: number, value: string) {
     const cleaned = value.replace(/\D/g, "");
-    // iOS AutoFill inserts the full 6-digit code into a single field via a change event
+    // iOS AutoFill fires a single change event with all 6 digits
     if (cleaned.length === 6) {
       const next = cleaned.split("");
       setDigits(next);

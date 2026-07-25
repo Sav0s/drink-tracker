@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@/test-utils';
+import { render, screen, waitFor, fireEvent } from '@/test-utils';
 import userEvent from '@testing-library/user-event';
 
 const signInWithOAuth = vi.fn();
@@ -156,8 +156,9 @@ describe('LoginPage', () => {
     await user.click(screen.getByText('Code senden'));
     await waitFor(() => expect(screen.getAllByTestId(/otp-digit-/)).toHaveLength(6));
 
-    // Simulate iOS AutoFill: the full 6-digit code lands in the first input via a change event
-    await user.type(screen.getByTestId('otp-digit-0'), '123456');
+    // iOS AutoFill fires a single change event with the full 6-digit value —
+    // NOT a series of keystrokes. fireEvent.change replicates that exactly.
+    fireEvent.change(screen.getByTestId('otp-digit-0'), { target: { value: '123456' } });
 
     await waitFor(() =>
       expect(verifyOtp).toHaveBeenCalledWith(
