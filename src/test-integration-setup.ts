@@ -1,5 +1,6 @@
 import { beforeEach, afterAll } from 'vitest';
 import { prisma } from '@/lib/prisma';
+import { assertDisposableDatabase } from '@/lib/assertDisposableDatabase';
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -8,6 +9,8 @@ if (!process.env.DATABASE_URL) {
       'local or CI database — never at production.'
   );
 }
+
+assertDisposableDatabase(process.env.DATABASE_URL);
 
 // Full reset before every test so tests can't leak state into each other,
 // regardless of execution order. CASCADE handles the FK chain

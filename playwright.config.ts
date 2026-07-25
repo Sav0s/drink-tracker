@@ -1,4 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import { assertDisposableDatabase } from './src/lib/assertDisposableDatabase';
+
+// Override DATABASE_URL/DIRECT_URL with the disposable test DB from
+// .env.test before the webServer (a real `next dev` process) starts, so it
+// never picks up .env.local's production values. No-ops safely if
+// .env.test doesn't exist (CI already sets a safe localhost DATABASE_URL
+// via job-level env — see .github/workflows/ci.yml).
+dotenv.config({ path: '.env.test', override: true });
+if (process.env.DATABASE_URL) {
+  assertDisposableDatabase(process.env.DATABASE_URL);
+}
 
 export default defineConfig({
   testDir: './e2e',

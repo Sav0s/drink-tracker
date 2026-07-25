@@ -2,10 +2,13 @@ import { chromium, type BrowserContext } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { prisma } from '../src/lib/prisma';
 
-// Load .env.local for local development; in CI DATABASE_URL is already in env
+// Load .env.local for local development (Supabase Auth creds — there's only
+// one Auth project); in CI these are already in env. DATABASE_URL/DIRECT_URL
+// are NOT loaded here — playwright.config.ts already overrode them from
+// .env.test and asserted they're disposable, and that runs first in the same
+// process, so dotenv (default override:false) leaves those two alone below.
 dotenv.config({ path: '.env.local' });
 
 const BASE = 'http://localhost:3000';
@@ -110,16 +113,9 @@ async function cleanup(): Promise<void> {
 }
 
 async function seedDrink(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  await prisma.drink.create({
+    data: { name: 'E2E Bier', priceCents: 150, active: true },
   });
-  try {
-    await prisma.drink.create({
-      data: { name: 'E2E Bier', priceCents: 150, active: true },
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
 }
 
 export default async function globalSetup() {

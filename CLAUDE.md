@@ -31,8 +31,11 @@ For logic that's only meaningfully correct against a real database — auth gati
 - **Naming/location:** `*.integration.test.ts`, colocated next to the route it tests (e.g. `src/app/api/admin/drinks/route.integration.test.ts`). Excluded from the regular `vitest.config.ts` run via its `exclude` list.
 - **Config:** separate `vitest.integration.config.ts` (Node env, no jsdom/Chakra needed since these call route handlers directly). Setup file `src/test-integration-setup.ts` truncates every table before each test — tests never depend on execution order or leftover rows.
 - **What's real vs. mocked:** the Prisma client and the database are real. Only `@/lib/supabase/server` (or `client`) is mocked, stubbing just the external auth call — `getCurrentPlayer()`/`requireAdmin()` still run for real against a DB-seeded player row. Seed fixtures live in `src/test-integration-helpers.ts` (`seedPlayer`, `seedDrink`, `seedActivePeriod`).
-- **Run locally:** `npm run test:integration` needs `DATABASE_URL` pointing at a disposable Postgres (never production) with migrations applied (`npx prisma migrate deploy`). The setup file throws immediately if `DATABASE_URL` is unset.
-- **CI:** separate `integration` job in `ci.yml` spins up a `postgres:16` service container, runs `prisma migrate deploy`, then `npm run test:integration`.
+- **Safety guard:** `src/lib/assertDisposableDatabase.ts` refuses to run unless `DATABASE_URL`'s host is a loopback address (`localhost`/`127.0.0.1`/`::1`) or `INTEGRATION_TEST_DB_CONFIRMED=true` is explicitly set. This exists because the setup file truncates real tables — a `DATABASE_URL` pointing at a shared/production database must never pass silently. Never set `INTEGRATION_TEST_DB_CONFIRMED` in `.env.local`.
+- **Run locally:** `npm run test:integration` loads `.env.test` (via `dotenv-cli`, overriding any ambient/shell-exported `DATABASE_URL`) and runs against the dedicated **`drink-tracker-test`** Supabase project (own project, same org, `eu-west-1` — separate from the real `drink-tracker` project so this can never touch real data). `.env.test` is gitignored like `.env.local`; it holds `DATABASE_URL`, `DIRECT_URL`, and `INTEGRATION_TEST_DB_CONFIRMED=true` for that project. Apply migrations to it with `npm run db:migrate:test`. The setup file throws immediately if `DATABASE_URL` is unset or if `assertDisposableDatabase()` rejects it.
+- **CI:** separate `integration` job in `ci.yml` spins up a `postgres:16` service container (a loopback host, so it passes the guard without needing the confirmation flag), runs `prisma migrate deploy`, then `npm run test:integration`.
+- **`npm run test:e2e`** always runs against `drink-tracker-test` too — `playwright.config.ts` and `e2e/global-setup.ts` both override `DATABASE_URL`/`DIRECT_URL` from `.env.test` before the `next dev` webServer starts, so the dev server under test never sees `.env.local`'s production values. `POST /api/test/cleanup` and `POST /api/test/session` (gated behind `PLAYWRIGHT_TEST=true`) also call `assertDisposableDatabase()` themselves as a second, server-side guard.
+- **Two ways to run the app locally:** `npm run dev` → disposable `drink-tracker-test` DB (`.env.local` — the safe, zero-config default). `npm run dev:prod` → real production DB (`.env.production.local`, loaded explicitly via `dotenv-cli`, never auto-loaded). Reach for `dev:prod` only when you deliberately need to look at real data; default to plain `dev` otherwise. Same pattern for migrations: bare `npx prisma migrate deploy` / `npm run db:migrate:test` target the test DB, `npm run db:migrate:prod` targets production.
 
 E2E (Playwright, thin layer of critical happy paths) is the remaining deferred piece — not set up yet.
 
@@ -118,11 +121,12 @@ prisma/
 
 ### Supabase Auth
 
-Env variables in `.env.local` (and in Vercel → Settings → Environment Variables for deploys). **Names must match exactly** — the client/server/proxy read `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, not `…_ANON_KEY`:
+**`.env.local` holds the disposable `drink-tracker-test` project's credentials, not production** — it's what plain `next dev` and bare Prisma commands auto-load, so it must stay safe by default (see the Integration tests section above for why). Real production credentials live in `.env.production.local` (gitignored, never auto-loaded — see `npm run dev:prod`). Both files, plus Vercel → Settings → Environment Variables for actual deploys, use the same var names. **Names must match exactly** — the client/server/proxy read `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, not `…_ANON_KEY`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...   # Supabase → Project Settings → API (publishable/anon key)
 ```
+CI's `e2e` job's `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` GitHub secrets also point at `drink-tracker-test`'s Auth, not production's — so the fake `e2e-player-001@e2e.test` / `e2e-admin-001@e2e.test` accounts it creates never land in the real user base.
 
 Auth flow: from `/login` either Google OAuth or an email magic link (`signInWithOtp`, `emailRedirectTo` → `/auth/callback`). Both land on `/auth/callback`, which exchanges the code, upserts the `player` row (seeding the name from Google metadata or the email prefix on first login), reads `player.isAdmin`, then redirects to `/admin/dashboard` (admin) or `/home` (player). There is no separate admin login anymore.
 Clients: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server/RSC).
@@ -141,6 +145,6 @@ Migration already applied. Prices always as **integer cents**.
 
 ### Deploying on Vercel
 
-Set the four env vars above in Vercel (Production/Preview/Development), then redeploy. In Supabase → Authentication → URL Configuration, set the **Site URL** to the Vercel domain and add it to **Redirect URLs** (e.g. `https://<app>.vercel.app/**`) so Google OAuth + the email magic link redirect back to `/auth/callback`.
+Set the four env vars above — using the **production** project's values from `.env.production.local`, not `.env.local` — in Vercel (Production/Preview/Development), then redeploy. In Supabase → Authentication → URL Configuration, set the **Site URL** to the Vercel domain and add it to **Redirect URLs** (e.g. `https://<app>.vercel.app/**`) so Google OAuth + the email magic link redirect back to `/auth/callback`.
 
 API route: `GET /api/me` → returns `{ id, name, isAdmin }` (Supabase user → Prisma player lookup). `PATCH /api/me { name }` renames the player. The app shows the **DB `player.name`** everywhere (AppBar avatar, bookings header, account screen) — the Google `user_metadata` name is only used by `auth/callback` to seed the player record on first login.
