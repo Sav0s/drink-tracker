@@ -182,6 +182,21 @@ describe('AdminDashboardPage', () => {
     );
   });
 
+  it('shows a confirmation toast after adding a drink', async () => {
+    mockFetch();
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await screen.findByText('Bier');
+
+    expect(screen.queryByText('Getränk hinzugefügt')).not.toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('Name'), 'Radlermix');
+    await user.type(screen.getByPlaceholderText('1,50'), '2,20');
+    await user.click(screen.getByText('+'));
+
+    expect(await screen.findByText('Getränk hinzugefügt')).toBeInTheDocument();
+  });
+
   it('edits a drink through the edit modal', async () => {
     mockFetch();
     const user = userEvent.setup();

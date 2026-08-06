@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Box, Flex, Text, Input, Textarea } from "@chakra-ui/react";
-import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { Plus, Pencil, ChevronDown, ChevronRight, RotateCcw, Check } from "lucide-react";
 import { formatCents } from "@/types";
 import { ROUTES, PERIOD_STATUS, type PeriodStatus } from "@/lib/constants";
 import { LoadingState } from "@/components/LoadingState";
@@ -129,6 +129,10 @@ function AdminDashboardContent() {
   const [periodsLoaded, setPeriodsLoaded] = useState(false);
   const [membersLoading, setMembersLoading] = useState(true);
 
+  // Drink-added toast
+  const [drinkAddedToast, setDrinkAddedToast] = useState(false);
+  const drinkAddedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Date inputs
   const [startDate, setStartDate] = useState("");
   const [endDate,   setEndDate]   = useState("");
@@ -221,7 +225,12 @@ function AdminDashboardContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newName, price_cents: price, active: newActive }),
     })
-      .then(() => reloadDrinks())
+      .then(() => {
+        reloadDrinks();
+        if (drinkAddedTimer.current) clearTimeout(drinkAddedTimer.current);
+        setDrinkAddedToast(true);
+        drinkAddedTimer.current = setTimeout(() => setDrinkAddedToast(false), 3000);
+      })
       .catch(() => {});
     setNewName(""); setNewPrice(""); setNewActive(true);
   }
@@ -1207,6 +1216,31 @@ function AdminDashboardContent() {
             </Box>
           </Flex>
         </>
+      )}
+
+      {/* Drink-added toast */}
+      {drinkAddedToast && (
+        <Flex
+          position="fixed"
+          bottom="24px"
+          left="50%"
+          transform="translateX(-50%)"
+          bg="#222934"
+          border="1px solid rgba(255,255,255,0.12)"
+          borderRadius="12px"
+          px={4}
+          py="12px"
+          alignItems="center"
+          gap="10px"
+          minW="280px"
+          boxShadow="0 8px 24px -12px rgba(0,0,0,0.55)"
+          zIndex={100}
+        >
+          <Check size={16} color="#2fa968" />
+          <Text flex={1} fontSize="14px" color="#eaedf2">
+            Getränk hinzugefügt
+          </Text>
+        </Flex>
       )}
     </Box>
   );
