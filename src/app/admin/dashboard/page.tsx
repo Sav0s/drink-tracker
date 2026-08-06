@@ -531,8 +531,8 @@ function AdminDashboardContent() {
                     py="2px"
                     fontSize="11px"
                     fontWeight="600"
-                    bg={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "rgba(4,104,179,0.16)" : "rgba(100,120,160,0.16)"}
-                    color={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "#0468b3" : "#6478a0"}
+                    bg={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "rgba(214,162,58,0.16)" : "rgba(47,169,104,0.16)"}
+                    color={periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "#d6a23a" : "#2fa968"}
                   >
                     {periods[selPeriod]?.status === PERIOD_STATUS.ACTIVE ? "Aktiv" : "Abgeschlossen"}
                   </Text>
@@ -553,10 +553,11 @@ function AdminDashboardContent() {
                     minW="220px"
                   >
                     {periods.map((p, i) => (
-                      <Box
+                      <Flex
                         key={p.id}
                         as="button"
-                        display="block"
+                        alignItems="center"
+                        gap="8px"
                         w="full"
                         textAlign="left"
                         px="14px"
@@ -570,7 +571,13 @@ function AdminDashboardContent() {
                         onClick={() => { setSelPeriod(i); setPeriodOpen(false); }}
                       >
                         {p.range}
-                      </Box>
+                        <Box
+                          w="7px"
+                          h="7px"
+                          borderRadius="9999px"
+                          bg={p.status === PERIOD_STATUS.ACTIVE ? "#d6a23a" : "#2fa968"}
+                        />
+                      </Flex>
                     ))}
                     <Flex
                       as="button"
