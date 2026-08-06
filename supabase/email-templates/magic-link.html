@@ -1,6 +1,14 @@
 <!--
   Supabase → Authentication → Emails → "Magic link or OTP"
-  Variable: {{ .ConfirmationURL }} (one-time sign-in link)
+  Variable: {{ .Token }} (the 6-digit code the app's /login screen asks for)
+
+  The app calls signInWithOtp() without emailRedirectTo specifically so
+  Supabase issues a 6-digit code instead of a magic link (see
+  src/app/login/page.tsx's sendOtp()) — this template must show that code.
+  There is deliberately no "click to sign in" link/button here: the app has
+  no route that handles a bare confirmation redirect (only /auth/callback,
+  which expects a ?code= param from the OAuth/PKCE flow), so a magic-link
+  button would not correctly sign the user in even if shown.
 -->
 <!DOCTYPE html>
 <html lang="de">
@@ -8,12 +16,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <title>Dein Login-Link</title>
+    <title>Dein Anmeldecode</title>
   </head>
   <body style="margin:0; padding:0; background-color:#0d1014;">
     <!-- preheader (hidden preview text) -->
     <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:#0d1014; font-size:1px; line-height:1px;">
-      Dein Login-Link für die Kabinen-Bar – gültig für kurze Zeit.
+      Dein Anmeldecode für die Kabinen-Bar – gültig für kurze Zeit.
     </div>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0d1014" style="background-color:#0d1014;">
@@ -37,29 +45,23 @@
             <tr>
               <td bgcolor="#151a21" style="background-color:#151a21; border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:36px 30px;">
                 <h1 style="margin:0 0 12px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:22px; font-weight:800; color:#eaedf2; text-align:center;">
-                  Dein Login-Link
+                  Dein Anmeldecode
                 </h1>
                 <p style="margin:0 0 28px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.55; color:#939dab; text-align:center;">
-                  Klick auf den Button, um dich bei der Kabinen-Bar anzumelden. Wenn du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.
+                  Gib diesen Code auf der Anmeldeseite der Kabinen-Bar ein. Wenn du dich nicht angemeldet hast, kannst du diese E-Mail einfach ignorieren.
                 </p>
 
-                <!-- Bulletproof button -->
+                <!-- Code -->
                 <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
                   <tr>
-                    <td bgcolor="#0468b3" style="background-color:#0468b3; border-radius:10px;">
-                      <a href="{{ .ConfirmationURL }}" target="_blank"
-                         style="display:inline-block; padding:15px 34px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:10px;">
-                        Jetzt anmelden
-                      </a>
+                    <td bgcolor="#1b212b" style="background-color:#1b212b; border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:16px 28px;">
+                      <span style="font-family:'SFMono-Regular',Menlo,Monaco,Consolas,monospace; font-size:32px; font-weight:700; letter-spacing:10px; color:#eaedf2;">{{ .Token }}</span>
                     </td>
                   </tr>
                 </table>
 
-                <p style="margin:28px 0 6px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; color:#5c6675; text-align:center;">
-                  Oder kopiere diesen Link in deinen Browser:
-                </p>
-                <p style="margin:0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:1.5; color:#0468b3; text-align:center; word-break:break-all;">
-                  <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#0468b3; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                <p style="margin:28px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; color:#5c6675; text-align:center;">
+                  Der Code läuft in Kürze ab und kann nur einmal verwendet werden.
                 </p>
               </td>
             </tr>
