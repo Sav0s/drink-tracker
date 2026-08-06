@@ -1,12 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Box, Flex, Text, Input, Image } from "@chakra-ui/react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
+import { Box, Flex, Text, Input, Image, Button } from "@chakra-ui/react";
 import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { CLUB_NAME, ROUTES } from "@/lib/constants";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// No store to subscribe to — this only exists to get a value that's false
+// during SSR and true once the client has taken over, per React's documented
+// hydration-safe pattern (avoids the extra-render "setState in an effect"
+// anti-pattern flagged by eslint-plugin-react-hooks).
+function subscribeNoop() {
+  return () => {};
+}
+function useMounted() {
+  return useSyncExternalStore(subscribeNoop, () => true, () => false);
+}
 
 export default function LoginPage() {
   const [step, setStep] = useState<"email" | "otp">("email");
@@ -16,6 +27,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null));
+
+  // False until the client has hydrated. The submit button stays disabled
+  // until then — otherwise a click that lands before React attaches its
+  // onSubmit handler falls through to a native form submission (reloads to
+  // "/login?", wipes the email field, and never calls signInWithOtp).
+  const mounted = useMounted();
 
   function updateDigits(next: string[]) {
     digitsRef.current = next;
@@ -307,8 +324,9 @@ export default function LoginPage() {
                 <Text fontSize="13px" color="#e0535f">{error}</Text>
               )}
 
-              <Box
-                as="button"
+              <Button
+                type="submit"
+                disabled={!mounted || loading}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -320,14 +338,14 @@ export default function LoginPage() {
                 h="52px"
                 fontSize="15px"
                 fontWeight="700"
-                cursor={loading ? "default" : "pointer"}
+                cursor={!mounted || loading ? "default" : "pointer"}
                 w="full"
-                opacity={loading ? 0.7 : 1}
-                _hover={loading ? undefined : { bg: "#0576cc" }}
+                opacity={!mounted || loading ? 0.7 : 1}
+                _hover={!mounted || loading ? undefined : { bg: "#0576cc" }}
               >
                 <Mail size={18} />
                 {loading ? "Wird gesendet…" : "Code senden"}
-              </Box>
+              </Button>
             </Flex>
 
             <Text fontSize="12px" color="#5c6675" textAlign="center" mt={6}>

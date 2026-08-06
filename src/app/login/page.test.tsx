@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@/test-utils';
+import { renderToString } from 'react-dom/server';
+import { ChakraProvider } from '@chakra-ui/react';
+import { system } from '@/lib/theme';
+import { render, screen, waitFor, fireEvent, within } from '@/test-utils';
 import userEvent from '@testing-library/user-event';
 
 const signInWithOAuth = vi.fn();
@@ -34,6 +37,23 @@ describe('LoginPage', () => {
     expect(screen.getByText('Mit Google anmelden')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('deine@email.de')).toBeInTheDocument();
     expect(screen.getByText('Code senden')).toBeInTheDocument();
+  });
+
+  it('disables the submit button in the server-rendered markup, before the client has hydrated', () => {
+    // This is the exact HTML a fast click hits before React attaches its
+    // onSubmit handler. If the button isn't disabled here, that click falls
+    // through to a native form submission (page reloads to "/login?", the
+    // email field is wiped, and no OTP is ever sent) instead of running
+    // handleSendCode.
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(
+      <ChakraProvider value={system}>
+        <LoginPage />
+      </ChakraProvider>
+    );
+
+    const button = within(container).getByText('Code senden').closest('button');
+    expect(button).toBeDisabled();
   });
 
   it('starts Google OAuth on click', async () => {
